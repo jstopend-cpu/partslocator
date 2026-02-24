@@ -1,0 +1,6 @@
+{
+  "//": "Force Vercel to install dependencies with legacy peer deps to avoid eslint peer conflict",
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run build"
+}
+
