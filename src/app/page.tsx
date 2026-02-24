@@ -52,30 +52,48 @@ export default function PartsLocatorDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: "",
+    ean: "",
+    supplier: "",
+    price: "",
+    stock: "",
+  });
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Ensure table exists and seed data (idempotent)
+      await fetch("/api/init", { method: "POST" });
+      const res = await fetch("/api/products");
+      if (!res.ok) {
+        throw new Error(`Αποτυχία φόρτωσης δεδομένων (${res.status})`);
+      }
+      const data: Product[] = await res.json();
+      setProducts(data);
+    } catch (err) {
+      setError("Δεν ήταν δυνατή η φόρτωση των προϊόντων.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
       try {
-        // Ensure table exists and seed data (idempotent)
-        await fetch("/api/init", { method: "POST" });
-        const res = await fetch("/api/products");
-        if (!res.ok) {
-          throw new Error(`Αποτυχία φόρτωσης δεδομένων (${res.status})`);
-        }
-        const data: Product[] = await res.json();
         if (!cancelled) {
-          setProducts(data);
+          await fetchProducts();
         }
       } catch (err) {
         if (!cancelled) {
-          setError("Δεν ήταν δυνατή η φόρτωση των προϊόντων.");
           console.error(err);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
         }
       }
     };
@@ -167,10 +185,21 @@ export default function PartsLocatorDashboard() {
           </div>
           <button
             type="button"
+            onClick={() => {
+              setForm({
+                name: "",
+                ean: "",
+                supplier: "",
+                price: "",
+                stock: "",
+              });
+              setFormError(null);
+              setIsModalOpen(true);
+            }}
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white transition-colors hover:bg-blue-500"
           >
             <Plus className="h-5 w-5" aria-hidden />
-            Add New Part
+            + Προσθήκη Ανταλλακτικού
           </button>
         </header>
 
@@ -285,6 +314,157 @@ export default function PartsLocatorDashboard() {
           </div>
         </div>
       </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Νέο Ανταλλακτικό</h2>
+              <button
+                type="button"
+                className="text-sm text-slate-400 hover:text-slate-200"
+                onClick={() => {
+                  if (!isSubmitting) {
+                    setIsModalOpen(false);
+                  }
+                }}
+              >
+                Κλείσιμο
+              </button>
+            </div>
+            {formError && (
+              <p className="mb-3 text-sm text-red-400">
+                {formError}
+              </p>
+            )}
+            <form
+              className="space-y-3"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setFormError(null);
+                setIsSubmitting(true);
+                try {
+                  if (!form.name || !form.ean || !form.supplier || !form.price || !form.stock) {
+                    setFormError("Συμπλήρωσε όλα τα πεδία.");
+                    return;
+                  }
+                  const res = await fetch("/api/products/add", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      name: form.name,
+                      ean: form.ean,
+                      supplier: form.supplier,
+                      price: Number(form.price.replace(",", ".")),
+                      stock: Number(form.stock),
+                    }),
+                  });
+                  if (!res.ok) {
+                    const data = await res.json().catch(() => null);
+                    setFormError(
+                      data?.error || "Κάτι πήγε στραβά κατά την αποθήκευση."
+                    );
+                    return;
+                  }
+                  await fetchProducts();
+                  setIsModalOpen(false);
+                } catch (err) {
+                  console.error(err);
+                  setFormError("Κάτι πήγε στραβά κατά την αποθήκευση.");
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+            >
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-400">
+                  Όνομα
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  placeholder="π.χ. Directed DB3 Bypass Module"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-400">
+                  EAN / SKU
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  placeholder="π.χ. 9990000000012"
+                  value={form.ean}
+                  onChange={(e) => setForm((f) => ({ ...f, ean: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-400">
+                  Προμηθευτής
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  placeholder="π.χ. Directed"
+                  value={form.supplier}
+                  onChange={(e) => setForm((f) => ({ ...f, supplier: e.target.value }))}
+                />
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="mb-1 block text-xs font-medium text-slate-400">
+                    Τιμή (€)
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    placeholder="π.χ. 129,90"
+                    value={form.price}
+                    onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                  />
+                </div>
+                <div className="w-32">
+                  <label className="mb-1 block text-xs font-medium text-slate-400">
+                    Απόθεμα
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    placeholder="π.χ. 15"
+                    value={form.stock}
+                    onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+                  onClick={() => {
+                    if (!isSubmitting) {
+                      setIsModalOpen(false);
+                    }
+                  }}
+                >
+                  Άκυρο
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSubmitting ? "Αποθήκευση..." : "Αποθήκευση"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
