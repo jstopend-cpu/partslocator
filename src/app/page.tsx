@@ -200,7 +200,48 @@ export default function PartsLocatorDashboard() {
           >
             <Plus className="h-5 w-5" aria-hidden />
             + Προσθήκη Ανταλλακτικού
-          </button>
+          </button><div className="relative group">
+  <input 
+    type="file" 
+    accept=".xml" 
+    id="xml-upload"
+    className="hidden" 
+    onChange={async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const res = await fetch('/api/import-xml', { 
+          method: 'POST', 
+          body: formData 
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          alert(`Επιτυχία! Εισήχθησαν ${data.count} προϊόντα.`);
+          window.location.reload(); // Ανανέωση σελίδας για να δεις τα νέα προϊόντα
+        } else {
+          alert('Σφάλμα: ' + data.error);
+        }
+      } catch (err) {
+        alert('Αποτυχία σύνδεσης με το API');
+      }
+    }} 
+  />
+  <label 
+    htmlFor="xml-upload" 
+    className="cursor-pointer bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center transition-colors"
+  >
+    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+    </svg>
+    + Εισαγωγή XML
+  </label>
+</div>
+          
         </header>
 
         <div className="flex-1 overflow-y-auto p-6">
