@@ -1,19 +1,22 @@
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 import { NextRequest, NextResponse } from "next/server";
-// @ts-ignore
-import { parseStringPromise } from "xml2js";
 import { prisma } from "@/lib/prisma";
-export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
+    const xml2js = require("xml2js");
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    
+
     if (!file) {
       return NextResponse.json({ success: false, error: "No file uploaded" }, { status: 400 });
     }
 
     const xmlText = await file.text();
-    const result = await parseStringPromise(xmlText);
+    const result = await xml2js.parseStringPromise(xmlText);
 
     // Υποθέτουμε δομή XML:
     // <products>
