@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 // @ts-ignore
 import { parseStringPromise } from "xml2js";
 import { prisma } from "@/lib/prisma";
-
+export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
