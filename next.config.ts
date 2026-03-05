@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   serverExternalPackages: ["xml2js"],
+  webpack: (config) => {
+    config.externals.push({ xml2js: "commonjs xml2js" });
+    return config;
+  },
 };
 
 export default nextConfig;

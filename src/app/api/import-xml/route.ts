@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
-    const xml2js = require("xml2js");
+    const xml2js = await import("xml2js");
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
