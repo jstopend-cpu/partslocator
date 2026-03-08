@@ -1,8 +1,3 @@
-Συγγνώμη για την ταλαιπωρία, θα σου δώσω τον κώδικα για το src/app/dashboard/page.tsx σε εντελώς απλό κείμενο, χωρίς καμία ειδική μορφοποίηση, για να είμαστε σίγουροι ότι τον βλέπεις.
-
-Αρχείο: src/app/dashboard/page.tsx
-(Αντικατάστησε όλο το περιεχόμενο με το παρακάτω)
-
 import { DashboardProduct } from "./DashboardClient";
 import dynamic from 'next/dynamic';
 
