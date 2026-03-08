@@ -1,17 +1,12 @@
-import { neon } from "@neondatabase/serverless";
+import { PrismaClient } from '@prisma/client';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL is not set. Please configure your database connection string."
-  );
-}
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-// Δημιουργούμε ένα Neon SQL client πάνω στο DATABASE_URL
-const sql = neon(process.env.DATABASE_URL);
+export const prisma = globalForPrisma.prisma || new PrismaClient();
 
-// Εξάγουμε μια συνάρτηση query που τυλίγει τον neon client
-export function query(strings, ...values) {
-  // Υποστηρίζει tagged template usage: query`SELECT ... WHERE id = ${id}`
-  return sql(strings, ...values);
-}
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
+export const query = async (strings: TemplateStringsArray, ...values: any[]) => {
+const sql = strings.reduce((acc, str, i) => acc + str + (values[i] !== undefined ? $${i + 1} : ""), "");
+return prisma.$queryRawUnsafe(sql, ...values);
+};
