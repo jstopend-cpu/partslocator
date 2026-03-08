@@ -1,16 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '@prisma/client'
+import { neon } from '@neondatabase/serverless'
 
-const globalForPrisma = globalThis as unknown as {
-  prisma?: PrismaClient;
-};
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
-
+// Αυτό επιτρέπει στον Prisma να "μιλάει" μέσω HTTP (θύρα 443) αντί για 5432
+const sql = neon(process.env.DATABASE_URL!)
+export const prisma = new PrismaClient()
