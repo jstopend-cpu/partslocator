@@ -22,14 +22,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const rows = await query`
+    // @ts-ignore - query helper is untyped, cast result manually
+    const rows: any = await query`
       INSERT INTO products (name, ean, supplier, price, stock)
       VALUES (${name}, ${ean}, ${supplier}, ${numericPrice}, ${numericStock})
       RETURNING id;
     `;
 
-    const typedRows = rows as { id: number }[];
-    const insertedId = typedRows[0]?.id;
+    const insertedId = rows?.[0]?.id as number | undefined;
 
     return new Response(
       JSON.stringify({ id: insertedId }),

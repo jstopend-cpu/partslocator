@@ -16,7 +16,9 @@ export async function POST(req: NextRequest) {
     }
 
     const xmlText = await file.text();
-    const result = await xml2js.parseStringPromise(xmlText);
+    const parsed = await xml2js.parseStringPromise(xmlText, {
+      explicitArray: false,
+    });
 
     // Υποθέτουμε δομή XML:
     // <products>
@@ -28,17 +30,18 @@ export async function POST(req: NextRequest) {
     //     <stock>...</stock>
     //   </item>
     // </products>
-    const items = result.products?.item ?? [];
+    const rawItems = parsed.products?.item ?? [];
+    const items = Array.isArray(rawItems) ? rawItems : [rawItems];
 
     let count = 0;
 
     for (const raw of items) {
       try {
-        const name = String(raw.name?.[0] ?? "").trim();
-        const ean = String(raw.ean?.[0] ?? "").trim();
-        const supplier = String(raw.supplier?.[0] ?? "").trim();
-        const rawPrice = String(raw.price?.[0] ?? "").trim();
-        const rawStock = String(raw.stock?.[0] ?? "").trim();
+        const name = String(raw?.name ?? "").trim();
+        const ean = String(raw?.ean ?? "").trim();
+        const supplier = String(raw?.supplier ?? "").trim();
+        const rawPrice = String(raw?.price ?? "").trim();
+        const rawStock = String(raw?.stock ?? "").trim();
 
         if (!name || !ean || !supplier || !rawPrice || !rawStock) {
           // Skip incomplete rows instead of failing the whole import
