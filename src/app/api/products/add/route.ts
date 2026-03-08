@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-export async function POST(request) {
+export async function POST(request: any) {
 try {
 const { prisma } = await import("@/lib/db");
 const body = await request.json();

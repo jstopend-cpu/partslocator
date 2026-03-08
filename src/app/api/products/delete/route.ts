@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-export async function DELETE(request) {
+export async function DELETE(request: any) {
 try {
 const { prisma } = await import("@/lib/db");
 const { id } = await request.json();
