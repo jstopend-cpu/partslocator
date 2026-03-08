@@ -1,14 +1,14 @@
-export const dynamic = "force-dynamic";
+import { NextRequest } from "next/server";
+import prisma from "@/lib/prisma";
 
-export async function DELETE(request: any) {
+export async function DELETE(request: NextRequest) {
 try {
-const { prisma } = await import("@/lib/db");
 const { id } = await request.json();
-await prisma.product.delete({
-where: { id: String(id) }
-});
-return Response.json({ success: true });
-} catch (error) {
-return Response.json({ error: error.message }, { status: 500 });
+
+} catch (error: any) {
+return Response.json(
+{ error: error.message || "Unknown error" },
+{ status: 500 }
+);
 }
 }
