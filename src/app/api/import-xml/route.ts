@@ -1,17 +1,23 @@
-import { PrismaClient } from '@prisma/client'
+import { NextRequest } from "next/server";
+import prisma from "@/lib/prisma";
 
-const prismaClientSingleton = () => {
-// Στην Prisma 7, η σύνδεση διαβάζεται αυτόματα από το περιβάλλον
-// ή ορίζεται μέσω του prisma.config.ts
-return new PrismaClient()
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+try {
+const count = await prisma.product.count();
+return Response.json({ success: true, total: count });
+} catch (error: any) {
+return Response.json({ error: error.message }, { status: 500 });
+}
 }
 
-declare global {
-var prisma: undefined | ReturnType<typeof prismaClientSingleton>
+export async function POST(request: NextRequest) {
+try {
+const body = await request.json();
+const products = body.products || [];
+
+} catch (error: any) {
+return Response.json({ error: error.message }, { status: 500 });
 }
-
-const prisma = globalThis.prisma ?? prismaClientSingleton()
-
-export default prisma
-
-if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma
+}
