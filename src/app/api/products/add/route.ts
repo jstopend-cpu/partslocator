@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { query } from "@/lib/db";
 
 export async function POST(request: Request) {

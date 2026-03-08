@@ -1,6 +1,9 @@
+export const dynamic = "force-dynamic";
+
 import { query } from "@/lib/db";
 
 async function initializeProducts() {
+  // @ts-ignore - query helper is untyped
   await query`
     CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
@@ -21,6 +24,7 @@ async function initializeProducts() {
   const count = Number(rows?.[0]?.count ?? 0);
 
   if (count === 0) {
+    // @ts-ignore - query helper is untyped
     await query`
       INSERT INTO products (name, ean, supplier, price, stock)
       VALUES
