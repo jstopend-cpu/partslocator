@@ -5,10 +5,10 @@ try {
 const { prisma } = await import("@/lib/db");
 const { id } = await request.json();
 await prisma.product.delete({
-where: { id: Number(id) }
+where: { id: String(id) }
 });
 return Response.json({ success: true });
-} catch (error: any) {
+} catch (error) {
 return Response.json({ error: error.message }, { status: 500 });
 }
 }
