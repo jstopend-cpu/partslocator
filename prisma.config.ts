@@ -1,8 +1,6 @@
-import "dotenv/config";
-import { defineConfig } from '@prisma/config'
+import { defineConfig } from 'prisma';
 
 export default defineConfig({
-  datasource: {
-    url: process.env.DATABASE_URL!,
-  },
-})
+  schema: './prisma/schema.prisma',
+  url: process.env.DATABASE_URL, // Αυτή η γραμμή είναι το "κλειδί"
+});
