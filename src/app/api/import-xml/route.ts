@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
 try {
@@ -17,7 +18,4 @@ try {
 const body = await request.json();
 const products = body.products || [];
 
-} catch (error: any) {
-return Response.json({ error: error.message }, { status: 500 });
-}
-}
+} catch (error: any) { return Response.json({ error: error.message }, { status: 500 }); } }
