@@ -1,8 +1,10 @@
+import { NextRequest } from "next/server";
+import prisma from "@/lib/prisma";
+
 export const dynamic = "force-dynamic";
 
 export async function GET() {
 try {
-const { prisma } = await import("@/lib/db");
 const count = await prisma.product.count();
 return Response.json({ success: true, total: count });
 } catch (error: any) {
@@ -10,11 +12,13 @@ return Response.json({ error: error.message }, { status: 500 });
 }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
 try {
-const { prisma } = await import("@/lib/db");
-return Response.json({ success: true, message: "Ready for XML" });
+const body = await request.json();
+const products = body.products || [];
+
 } catch (error: any) {
+console.error("Import Error:", error.message);
 return Response.json({ error: error.message }, { status: 500 });
 }
 }
