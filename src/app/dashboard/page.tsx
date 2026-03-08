@@ -1,11 +1,11 @@
 import { DashboardProduct } from "./DashboardClient";
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const DashboardClient = dynamic(() => import('./DashboardClient'), {
-ssr: false
+const DashboardClient = nextDynamic(() => import('./DashboardClient'), {
+ssr: true
 });
 
 const PAGE_SIZE = 50;
