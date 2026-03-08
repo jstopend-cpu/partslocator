@@ -8,7 +8,7 @@ const product = await prisma.product.create({
 data: body
 });
 return Response.json(product);
-} catch (error) {
+} catch (error: any) {
 return Response.json({ error: error.message }, { status: 500 });
 }
 }

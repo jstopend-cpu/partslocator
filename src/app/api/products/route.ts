@@ -7,7 +7,7 @@ const products = await prisma.product.findMany({
 orderBy: { id: 'desc' }
 });
 return Response.json(products);
-} catch (error) {
+} catch (error: any) {
 return Response.json({ error: error.message }, { status: 500 });
 }
 }
