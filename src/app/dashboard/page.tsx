@@ -23,7 +23,7 @@ typeof pageParam === "string" ? Number(pageParam) : Number(Array.isArray(pagePar
 const currentPage = Number.isNaN(parsed) || parsed < 1 ? 1 : parsed;
 const skip = (currentPage - 1) * PAGE_SIZE;
 
-const { prisma } = await import("@/lib/prisma");
+const prisma = (await import("@/lib/prisma")).default;
 
 const [products, totalCount, distinctSuppliers] = await Promise.all([
 prisma.product.findMany({
