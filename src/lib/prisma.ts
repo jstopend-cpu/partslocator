@@ -1,6 +1,18 @@
 import { PrismaClient } from '@prisma/client'
-import { neon } from '@neondatabase/serverless'
 
-// Αυτό επιτρέπει στον Prisma να "μιλάει" μέσω HTTP (θύρα 443) αντί για 5432
-const sql = neon(process.env.DATABASE_URL!)
-export const prisma = new PrismaClient()
+const prismaClientSingleton = () => {
+if (!process.env.DATABASE_URL) {
+throw new Error('DATABASE_URL is not defined in environment variables');
+}
+return new PrismaClient()
+}
+
+declare global {
+var prisma: undefined | ReturnType<typeof prismaClientSingleton>
+}
+
+const prisma = globalThis.prisma ?? prismaClientSingleton()
+
+export default prisma
+
+if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma
