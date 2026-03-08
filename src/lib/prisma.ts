@@ -1,15 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 
 const prismaClientSingleton = () => {
-const url = process.env.DATABASE_URL
-
-if (!url) {
 return new PrismaClient()
-}
-
-return new PrismaClient({
-datasourceUrl: url
-})
 }
 
 declare global {
