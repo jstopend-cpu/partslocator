@@ -3,9 +3,11 @@ export const dynamic = "force-dynamic";
 export async function GET() {
 try {
 const { prisma } = await import("@/lib/db");
-const products = await prisma.product.findMany();
+const products = await prisma.product.findMany({
+orderBy: { id: 'desc' }
+});
 return Response.json(products);
-} catch (error: any) {
+} catch (error) {
 return Response.json({ error: error.message }, { status: 500 });
 }
 }

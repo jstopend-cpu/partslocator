@@ -1,47 +1,14 @@
 export const dynamic = "force-dynamic";
 
-import { query } from "@/lib/db";
-
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { name, ean, supplier, price, stock } = body ?? {};
-
-    if (!name || !ean || !supplier || price === undefined || stock === undefined) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    const numericPrice = Number(price);
-    const numericStock = Number(stock);
-
-    if (Number.isNaN(numericPrice) || Number.isNaN(numericStock)) {
-      return new Response(
-        JSON.stringify({ error: "Price and stock must be numeric" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    // @ts-ignore - query helper is untyped, cast result manually
-    const rows: any = await query`
-      INSERT INTO products (name, ean, supplier, price, stock)
-      VALUES (${name}, ${ean}, ${supplier}, ${numericPrice}, ${numericStock})
-      RETURNING id;
-    `;
-
-    const insertedId = rows?.[0]?.id as number | undefined;
-
-    return new Response(
-      JSON.stringify({ id: insertedId }),
-      { status: 201, headers: { "Content-Type": "application/json" } },
-    );
-  } catch (error) {
-    console.error("Error inserting product", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
-  }
+export async function POST(request) {
+try {
+const { prisma } = await import("@/lib/db");
+const body = await request.json();
+const product = await prisma.product.create({
+data: body
+});
+return Response.json(product);
+} catch (error) {
+return Response.json({ error: error.message }, { status: 500 });
+}
 }
