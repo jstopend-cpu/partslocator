@@ -12,35 +12,35 @@ async function initializeProducts() {
     );
   `;
 
-// @ts-ignore
-const rows: any = await query`
-  SELECT COUNT(*)::int AS count
-  FROM products;
-`;
-
-const count = Number(rows?.[0]?.count ?? 0);
-
-if (count === 0) {
-  await query`
-    INSERT INTO products (name, ean, supplier, price, stock)
-    VALUES
-      ('Directed DB3 Bypass Module', '9990000000012', 'Directed', 129.90, 15),
-      ('Directed DS4 Remote Start System', '9990000000013', 'Directed', 249.00, 8),
-      ('Directed DS4+ Premium Kit', '9990000000014', 'Directed', 329.00, 5),
-      ('Directed High-Power Siren', '9990000000015', 'Directed', 59.90, 24),
-      ('Directed Digital Shock Sensor', '9990000000016', 'Directed', 44.50, 32)
-    ON CONFLICT (ean) DO NOTHING;
+  // @ts-ignore - query helper is untyped
+  const rows: any = await query`
+    SELECT COUNT(*)::int AS count
+    FROM products;
   `;
-}
 
-return { success: true, count };
+  const count = Number(rows?.[0]?.count ?? 0);
+
+  if (count === 0) {
+    await query`
+      INSERT INTO products (name, ean, supplier, price, stock)
+      VALUES
+        ('Directed DB3 Bypass Module', '9990000000012', 'Directed', 129.90, 15),
+        ('Directed DS4 Remote Start System', '9990000000013', 'Directed', 249.00, 8),
+        ('Directed DS4+ Premium Kit', '9990000000014', 'Directed', 329.00, 5),
+        ('Directed High-Power Siren', '9990000000015', 'Directed', 59.90, 24),
+        ('Directed Digital Shock Sensor', '9990000000016', 'Directed', 44.50, 32)
+      ON CONFLICT (ean) DO NOTHING;
+    `;
+  }
+
+  return { success: true, count };
 }
 
 export async function GET() {
-try {
-const result = await initializeProducts();
-return Response.json(result);
-} catch (error: any) {
-return Response.json({ error: error.message }, { status: 500 });
-}
+  try {
+    const result = await initializeProducts();
+    return Response.json(result);
+  } catch (error: any) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
 }
