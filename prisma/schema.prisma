@@ -25,15 +25,15 @@ brands   Brand[]   @relation("BrandToDealer")
 }
 
 model Product {
-id          String   @id
-partNumber  String
-name        String
-price       Float
-stock       Int      @default(0)
-lastUpdate  DateTime @default(now()) @updatedAt
-brandId     String
-brand       Brand    @relation(fields: [brandId], references: [id])
-dealerId    String
-dealer      Dealer   @relation(fields: [dealerId], references: [id])
-@@index([partNumber])
+id         String   @id
+partNumber String
+name       String
+price      Float
+stock      Int
+brandId    String
+brand      Brand    @relation(fields: [brandId], references: [id])
+dealerId   String
+dealer     Dealer   @relation(fields: [dealerId], references: [id])
+createdAt  DateTime @default(now())
+updatedAt  DateTime @default(now()) @updatedAt
 }
