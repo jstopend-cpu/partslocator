@@ -1,18 +1,47 @@
-// This is your Prisma schema file
-generator client {
-provider = "prisma-client-js"
-}
+// prisma/schema.prisma
 
 datasource db {
-provider = "postgresql"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-model Product {
-  id        String   @id @default(cuid())
+generator client {
+  provider = "prisma-client-client"
+}
+
+// Οι Μάρκες (π.χ. VOLVO, TOYOTA)
+model Brand {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  products  Product[]
+  dealers   Dealer[]  @relation("BrandToDealer")
+}
+
+// Οι Αντιπρόσωποι (π.χ. Παπαδόπουλος Α.Ε.)
+model Dealer {
+  id        String    @id @default(cuid())
   name      String
-  ean       String   @unique
-  supplier  String
-  price     Float
-  stock     Int
-  updatedAt DateTime @updatedAt
+  location  String?
+  email     String    @unique
+  products  Product[]
+  brands    Brand[]   @relation("BrandToDealer")
+}
+
+// Τα Προϊόντα / Ανταλλακτικά
+model Product {
+  id          String   @id // Εδώ θα βάζουμε το Part Number + DealerID για μοναδικότητα
+  partNumber  String   // Ο επίσημος κωδικός ανταλλακτικού
+  name        String
+  price       Float
+  stock       Int      @default(0)
+  lastUpdate  DateTime @default(now()) @updatedAt
+
+  // Σχέσεις
+  brandId     String
+  brand       Brand    @relation(fields: [brandId], references: [id])
+  
+  dealerId    String
+  dealer      Dealer   @relation(fields: [dealerId], references: [id])
+
+  @@index([partNumber])
 }
