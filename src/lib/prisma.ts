@@ -4,7 +4,11 @@ const DATABASE_URL = "postgresql://neondb_owner:npg_KNEMJt9qIZy0@ep-wild-darknes
 
 const prismaClientSingleton = () => {
 return new PrismaClient({
-datasourceUrl: DATABASE_URL,
+datasources: {
+db: {
+url: DATABASE_URL,
+},
+},
 })
 }
 
