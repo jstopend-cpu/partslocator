@@ -1,47 +1,44 @@
-// prisma/schema.prisma
-
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+provider = "postgresql"
 }
 
 generator client {
-  provider = "prisma-client-client"
+provider = "prisma-client-js"
 }
 
-// Οι Μάρκες (π.χ. VOLVO, TOYOTA)
 model Brand {
-  id        String    @id @default(cuid())
-  name      String    @unique
-  products  Product[]
-  dealers   Dealer[]  @relation("BrandToDealer")
+id        String    @id @default(cuid())
+name      String    @unique
+products  Product[]
+dealers   Dealer[]  @relation("BrandToDealer")
 }
 
-// Οι Αντιπρόσωποι (π.χ. Παπαδόπουλος Α.Ε.)
 model Dealer {
-  id        String    @id @default(cuid())
-  name      String
-  location  String?
-  email     String    @unique
-  products  Product[]
-  brands    Brand[]   @relation("BrandToDealer")
+id        String    @id @default(cuid())
+name      String
+location  String?
+email     String    @unique
+xmlUrl    String?
+
+products  Product[]
+
+brands    Brand[]   @relation("BrandToDealer")
 }
 
-// Τα Προϊόντα / Ανταλλακτικά
 model Product {
-  id          String   @id // Εδώ θα βάζουμε το Part Number + DealerID για μοναδικότητα
-  partNumber  String   // Ο επίσημος κωδικός ανταλλακτικού
-  name        String
-  price       Float
-  stock       Int      @default(0)
-  lastUpdate  DateTime @default(now()) @updatedAt
+id          String   @id
+partNumber  String
 
-  // Σχέσεις
-  brandId     String
-  brand       Brand    @relation(fields: [brandId], references: [id])
-  
-  dealerId    String
-  dealer      Dealer   @relation(fields: [dealerId], references: [id])
+name        String
+price       Float
+stock       Int      @default(0)
+lastUpdate  DateTime @default(now()) @updatedAt
 
-  @@index([partNumber])
+brandId     String
+brand       Brand    @relation(fields: [brandId], references: [id])
+
+dealerId    String
+dealer      Dealer   @relation(fields: [dealerId], references: [id])
+
+@@index([partNumber])
 }
