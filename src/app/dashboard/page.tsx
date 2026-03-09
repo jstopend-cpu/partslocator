@@ -1,10 +1,10 @@
 import nextDynamic from 'next/dynamic';
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 const DashboardClient = nextDynamic(() => import('./DashboardClient'), {
-ssr: true
+ssr: false
 });
 
 const PAGE_SIZE = 50;
@@ -12,23 +12,24 @@ const PAGE_SIZE = 50;
 export default async function CustomerDashboardPage({
 searchParams,
 }: {
-searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+searchParams?: any;
 }) {
 const params = await searchParams;
 const pageParam = params?.page;
-
-const parsed = typeof pageParam === "string" ? Number(pageParam) : Number(Array.isArray(pageParam) ? pageParam[0] : 1);
+const parsed = typeof pageParam === "string" ? Number(pageParam) : 1;
 const currentPage = Number.isNaN(parsed) || parsed < 1 ? 1 : parsed;
 const skip = (currentPage - 1) * PAGE_SIZE;
 
+// Εισαγωγή της Prisma
 const prisma = (await import("@/lib/prisma")).default;
 
-// 1. Φέρνουμε τα δεδομένα
+try {
+// 1. Φέρνουμε τα δεδομένα από τη βάση
 const [products, totalCount, distinctDealers] = await Promise.all([
 prisma.product.findMany({
-orderBy: { updatedAt: "desc" },
-skip,
 take: PAGE_SIZE,
+skip: skip,
+orderBy: { updatedAt: "desc" },
 include: { brand: true, dealer: true }
 }),
 prisma.product.count(),
@@ -36,26 +37,16 @@ prisma.product.findMany({
 distinct: ["dealerId"],
 select: { dealerId: true },
 }),
-])
+]);
 
-// 2. Mapping
-const mapped = products.map((p) => ({
-id: p.id,
-name: p.name,
-ean: p.partNumber,
-dealerId: p.dealerId,
-price: p.price,
-stock: p.stock,
-updatedAt: p.updatedAt.toISOString(),
-}));
-
+} catch (error) {
+console.error("Database Error:", error);
 return (
-<DashboardClient
-initialProducts={mapped as any}
-page={currentPage}
-pageSize={PAGE_SIZE}
-totalCount={totalCount}
-{...({ supplierIds: distinctDealers.map((d) => d.dealerId) } as any)}
-/>
+<div className="p-10 text-red-500 bg-white">
+Σφάλμα σύνδεσης με τη βάση δεδομένων.
+<br />
+Παρακαλώ ελέγξτε τα Logs στη Vercel.
+</div>
 );
+}
 }
