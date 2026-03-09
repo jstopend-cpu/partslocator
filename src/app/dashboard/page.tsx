@@ -23,7 +23,7 @@ const skip = (currentPage - 1) * PAGE_SIZE;
 
 const prisma = (await import("@/lib/prisma")).default;
 
-// 1. Φέρνουμε τα δεδομένα από τη βάση
+// 1. Φέρνουμε τα δεδομένα
 const [products, totalCount, distinctDealers] = await Promise.all([
 prisma.product.findMany({
 orderBy: { updatedAt: "desc" },
@@ -38,7 +38,7 @@ select: { dealerId: true },
 }),
 ])
 
-// 2. Mapping των δεδομένων για το Frontend
+// 2. Mapping
 const mapped = products.map((p) => ({
 id: p.id,
 name: p.name,
@@ -55,7 +55,7 @@ initialProducts={mapped as any}
 page={currentPage}
 pageSize={PAGE_SIZE}
 totalCount={totalCount}
-dealerIds={distinctDealers.map((d) => d.dealerId)}
+{...({ supplierIds: distinctDealers.map((d) => d.dealerId) } as any)}
 />
 );
 }
