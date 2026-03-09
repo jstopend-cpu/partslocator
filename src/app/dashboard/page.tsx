@@ -1,4 +1,3 @@
-import { DashboardProduct } from "./DashboardClient";
 import nextDynamic from 'next/dynamic';
 
 export const dynamic = "force-dynamic";
@@ -18,32 +17,33 @@ searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 const params = await searchParams;
 const pageParam = params?.page;
 
-const parsed =
-typeof pageParam === "string" ? Number(pageParam) : Number(Array.isArray(pageParam) ? pageParam[0] : 1);
+const parsed = typeof pageParam === "string" ? Number(pageParam) : Number(Array.isArray(pageParam) ? pageParam[0] : 1);
 const currentPage = Number.isNaN(parsed) || parsed < 1 ? 1 : parsed;
 const skip = (currentPage - 1) * PAGE_SIZE;
 
 const prisma = (await import("@/lib/prisma")).default;
 
-const [products, totalCount, distinctSuppliers] = await Promise.all([
+// 1. Φέρνουμε τα δεδομένα από τη βάση
+const [products, totalCount, distinctDealers] = await Promise.all([
 prisma.product.findMany({
 orderBy: { updatedAt: "desc" },
 skip,
 take: PAGE_SIZE,
+include: { brand: true, dealer: true }
 }),
 prisma.product.count(),
 prisma.product.findMany({
-distinct: ["supplier"],
-select: { supplier: true },
-orderBy: { supplier: "asc" },
+distinct: ["dealerId"],
+select: { dealerId: true },
 }),
-]);
+])
 
-const mapped: DashboardProduct[] = products.map((p) => ({
+// 2. Mapping των δεδομένων για το Frontend
+const mapped = products.map((p) => ({
 id: p.id,
 name: p.name,
-ean: p.ean,
-supplier: p.supplier,
+ean: p.partNumber,
+dealerId: p.dealerId,
 price: p.price,
 stock: p.stock,
 updatedAt: p.updatedAt.toISOString(),
@@ -51,11 +51,11 @@ updatedAt: p.updatedAt.toISOString(),
 
 return (
 <DashboardClient
-initialProducts={mapped}
+initialProducts={mapped as any}
 page={currentPage}
 pageSize={PAGE_SIZE}
 totalCount={totalCount}
-suppliers={distinctSuppliers.map((s) => s.supplier)}
+dealerIds={distinctDealers.map((d) => d.dealerId)}
 />
 );
 }
