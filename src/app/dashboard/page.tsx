@@ -51,10 +51,7 @@ export default function CustomerDashboardPage() {
     return () => controller.abort();
   }, []);
 
-  const safeProducts = useMemo(
-    () => (products && Array.isArray(products) ? products : []) as DashboardProduct[],
-    [products]
-  );
+  const safeProductsList = useMemo(() => (products || []) as DashboardProduct[], [products]);
 
   const suppliers = useMemo(
     () =>
@@ -63,7 +60,7 @@ export default function CustomerDashboardPage() {
   );
 
   if (!isMounted) {
-    return <div className="p-20">Loading...</div>;
+    return <div>Loading...</div>;
   }
 
   if (loading) {
@@ -76,7 +73,7 @@ export default function CustomerDashboardPage() {
 
   return (
     <DashboardClient
-      initialProducts={(products || []) as DashboardProduct[]}
+      initialProducts={safeProductsList}
       page={1}
       pageSize={50}
       totalCount={typeof totalCount === "number" ? totalCount : 0}
