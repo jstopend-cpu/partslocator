@@ -1,12 +1,17 @@
 import DashboardClient from './DashboardClient';
 import prisma from '@/lib/prisma';
 
+// Strictly dynamic: never statically generated at build (avoids Prisma/DB during "Collecting page data").
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function CustomerDashboardPage() {
-  // Αν είμαστε σε φάση Build, επέστρεψε ένα απλό div για να μην κρασάρει η Prisma
-  if (process.env.NEXT_PHASE === 'phase-production-build') {
-    return <div className="p-10">Loading...</div>;
+  // Build-Phase Guard: Prisma never attempts a real connection during Vercel "static analysis" worker phase.
+  if (
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    (process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL)
+  ) {
+    return <div>Loading...</div>;
   }
 
   try {
