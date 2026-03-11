@@ -180,4 +180,45 @@ export default function PartsLocatorDashboard() {
           </div>
 
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden">
-            <div className="px-
+            <div className="px-6 py-4 border-b border-slate-800">
+              <h2 className="text-lg font-semibold text-slate-100">Ανταλλακτικά</h2>
+            </div>
+            <div className="overflow-x-auto">
+              {loading ? (
+                <p className="p-6 text-slate-400">Φόρτωση...</p>
+              ) : error ? (
+                <p className="p-6 text-red-400">{error}</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-left text-slate-400">
+                      <th className="px-6 py-3">Όνομα</th>
+                      <th className="px-6 py-3">EAN / SKU</th>
+                      <th className="px-6 py-3">Προμηθευτής</th>
+                      <th className="px-6 py-3">Τιμή</th>
+                      <th className="px-6 py-3">Απόθεμα</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.isArray(filteredProducts) &&
+                      filteredProducts.map((product) => (
+                        <tr key={product.id} className="border-b border-slate-800/80 hover:bg-slate-800/50">
+                          <td className="px-6 py-3 text-slate-200">{product.name}</td>
+                          <td className="px-6 py-3 font-mono text-slate-400">{product.ean}</td>
+                          <td className="px-6 py-3">
+                            <BrandBadge brand={product.supplier} />
+                          </td>
+                          <td className="px-6 py-3 text-slate-200">{formatPrice(product.price)}</td>
+                          <td className="px-6 py-3 text-slate-200">{product.stock}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
