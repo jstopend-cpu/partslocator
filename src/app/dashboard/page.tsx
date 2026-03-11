@@ -19,39 +19,35 @@ export default function CustomerDashboardPage() {
     const controller = new AbortController();
     const { signal } = controller;
 
-    let aborted = false;
-    async function load() {
-      try {
-        const res = await fetch("/api/products", { signal });
+    fetch("/api/products", { signal })
+      .then((res) => {
         if (!res.ok) throw new Error("Network response was not ok");
-        const data = await res.json().catch(() => ({}));
-
         if (res.status === 404) {
           setProducts([]);
           setTotalCount(0);
-          return;
+          setLoading(false);
+          return null;
         }
-
+        return res.json().catch(() => ({}));
+      })
+      .then((data) => {
+        if (data === null) return;
         if (data && Array.isArray(data.products)) {
           setProducts(data.products);
         } else {
           setProducts([]);
         }
         setTotalCount(typeof data?.totalCount === "number" ? data.totalCount : 0);
-      } catch (e) {
-        if (e instanceof Error && e.name === "AbortError") {
-          aborted = true;
-          return;
-        }
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (e instanceof Error && e.name === "AbortError") return;
         setProducts([]);
         setTotalCount(0);
         setError("Database connection error. Please refresh.");
-      } finally {
-        if (!aborted) setLoading(false);
-      }
-    }
+        setLoading(false);
+      });
 
-    load();
     return () => controller.abort();
   }, []);
 
@@ -67,7 +63,7 @@ export default function CustomerDashboardPage() {
   );
 
   if (!isMounted) {
-    return <div>Loading...</div>;
+    return <div className="p-20">Loading...</div>;
   }
 
   if (loading) {
