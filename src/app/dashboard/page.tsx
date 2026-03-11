@@ -6,7 +6,7 @@ import type { DashboardProduct } from "./DashboardClient";
 
 export default function CustomerDashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
-  const [dashboardItems, setDashboardItems] = useState([]);
+  const [dashboardData, setDashboardData] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +23,7 @@ export default function CustomerDashboardPage() {
       .then((res) => {
         if (!res.ok) throw new Error("Network response was not ok");
         if (res.status === 404) {
-          setDashboardItems([]);
+          setDashboardData([]);
           setTotalCount(0);
           setLoading(false);
           return null;
@@ -32,13 +32,13 @@ export default function CustomerDashboardPage() {
       })
       .then((data) => {
         if (data === null) return;
-        setDashboardItems(Array.isArray(data.products) ? data.products : []);
+        setDashboardData(Array.isArray(data.products) ? data.products : []);
         setTotalCount(typeof data?.totalCount === "number" ? data.totalCount : 0);
         setLoading(false);
       })
       .catch((e) => {
         if (e instanceof Error && e.name === "AbortError") return;
-        setDashboardItems([]);
+        setDashboardData([]);
         setTotalCount(0);
         setError("Database connection error. Please refresh.");
         setLoading(false);
@@ -48,20 +48,20 @@ export default function CustomerDashboardPage() {
   }, []);
 
   const safeProductsList = useMemo(
-    () => (Array.isArray(dashboardItems) ? dashboardItems : []) as DashboardProduct[],
-    [dashboardItems]
+    () => (Array.isArray(dashboardData) ? dashboardData : []) as DashboardProduct[],
+    [dashboardData]
   );
 
   const suppliers = useMemo(
     () =>
-      [...new Set((dashboardItems || []).map((p: DashboardProduct) => p.supplier))]
+      [...new Set((dashboardData || []).map((p: DashboardProduct) => p.supplier))]
         .filter(Boolean)
         .sort(),
-    [dashboardItems]
+    [dashboardData]
   );
 
   if (!isMounted) {
-    return <div>Loading...</div>;
+    return <div className="p-10">Loading Dashboard...</div>;
   }
 
   if (loading) {

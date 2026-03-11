@@ -23,17 +23,22 @@ export async function GET() {
       db.product.count(),
     ]);
 
-    const mapped = products.map((p) => ({
-      id: p.id,
-      name: p.name || "Χωρίς Όνομα",
-      ean: p.id,
-      supplier: p.dealer?.name || "VOLVO",
-      price: p.price ?? 0,
-      stock: p.stock ?? 0,
-      updatedAt: p.updatedAt ? new Date(p.updatedAt).toISOString() : new Date().toISOString(),
-    }));
+    const mapped = Array.isArray(products)
+      ? products.map((p) => ({
+          id: p.id,
+          name: p.name || "Χωρίς Όνομα",
+          ean: p.id,
+          supplier: p.dealer?.name || "VOLVO",
+          price: p.price ?? 0,
+          stock: p.stock ?? 0,
+          updatedAt: p.updatedAt ? new Date(p.updatedAt).toISOString() : new Date().toISOString(),
+        }))
+      : [];
 
-    return NextResponse.json({ products: mapped, totalCount });
+    return NextResponse.json({
+      products: Array.isArray(mapped) ? mapped : [],
+      totalCount: typeof totalCount === "number" ? totalCount : 0,
+    });
   } catch (error) {
     console.error("API products error:", error);
     return NextResponse.json({ products: [], totalCount: 0 }, { status: 200 });
