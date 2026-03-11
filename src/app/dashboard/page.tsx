@@ -63,7 +63,7 @@ export default function CustomerDashboardPage() {
 
   const suppliers = useMemo(
     () =>
-      [...new Set((dashboardData || []).map((p: DashboardProduct) => p.supplier))]
+      [...new Set((Array.isArray(dashboardData) ? dashboardData : []).map((p: DashboardProduct) => p.supplier))]
         .filter(Boolean)
         .sort(),
     [dashboardData]

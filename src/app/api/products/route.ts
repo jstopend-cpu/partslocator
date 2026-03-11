@@ -4,15 +4,13 @@ import prisma from "@/database/client";
 
 export async function GET() {
   try {
-    const [products, totalCount] = await Promise.all([
-      prisma.product.findMany({
-        take: 50,
-        include: { brand: true, dealer: true },
-      }),
-      prisma.product.count(),
-    ]);
+    const products = await prisma.product.findMany({
+      take: 50,
+      include: { brand: true, dealer: true },
+    });
+    const totalCount = await prisma.product.count();
 
-    const mapped = Array.isArray(products)
+    const list = Array.isArray(products)
       ? products.map((p) => ({
           id: p.id,
           name: p.name || "Χωρίς Όνομα",
@@ -25,7 +23,7 @@ export async function GET() {
       : [];
 
     return NextResponse.json({
-      products: Array.isArray(mapped) ? mapped : [],
+      products: Array.isArray(list) ? list : [],
       totalCount: typeof totalCount === "number" ? totalCount : 0,
     });
   } catch (error) {

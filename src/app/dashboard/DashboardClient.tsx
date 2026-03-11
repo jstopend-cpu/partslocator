@@ -486,7 +486,8 @@ export default function DashboardClient({
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {!error &&
-                (filteredProducts || []).map((product) => {
+                Array.isArray(filteredProducts) &&
+                filteredProducts.map((product) => {
                   const stockStyles = getStockBadgeStyles(product.stock);
                   const inStockBool = product.stock > 0;
                   return (
