@@ -32,7 +32,11 @@ export default function CustomerDashboardPage() {
           return;
         }
 
-        setProducts(Array.isArray(data.products) ? data.products : []);
+        if (data && Array.isArray(data.products)) {
+          setProducts(data.products);
+        } else {
+          setProducts([]);
+        }
         setTotalCount(typeof data?.totalCount === "number" ? data.totalCount : 0);
       } catch (e) {
         if (e instanceof Error && e.name === "AbortError") {
@@ -52,7 +56,7 @@ export default function CustomerDashboardPage() {
   }, []);
 
   const safeProducts = useMemo(
-    () => (Array.isArray(products) ? products : []),
+    () => (products && Array.isArray(products) ? products : []),
     [products]
   );
 
@@ -63,7 +67,7 @@ export default function CustomerDashboardPage() {
   );
 
   if (!isMounted) {
-    return <div className="p-20">Loading...</div>;
+    return <div>Loading...</div>;
   }
 
   if (loading) {
