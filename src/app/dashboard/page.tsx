@@ -6,11 +6,8 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function CustomerDashboardPage() {
-  // Build-Phase Guard: Prisma never attempts a real connection during Vercel "static analysis" worker phase.
-  if (
-    process.env.NEXT_PHASE === 'phase-production-build' ||
-    (process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL)
-  ) {
+  // Skip all database logic during Vercel build phase (CI or production-build phase).
+  if (process.env.CI || process.env.NEXT_PHASE === 'phase-production-build') {
     return <div>Loading...</div>;
   }
 
