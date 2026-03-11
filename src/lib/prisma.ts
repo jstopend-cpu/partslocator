@@ -13,12 +13,7 @@ export const getPrisma = () => {
   if (!globalThis.prisma) {
     const url = process.env.DATABASE_URL || NEON_URL
     globalThis.prisma = new PrismaClient({
-      __internal: {
-        useUds: false,
-        engine: {
-          endpoint: url,
-        },
-      },
+      datasourceUrl: url,
     } as any)
   }
   return globalThis.prisma
