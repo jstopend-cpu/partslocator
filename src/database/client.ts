@@ -1,5 +1,5 @@
-// VERSION 2.0 - FORCE REFRESH
 export const dynamic = 'force-dynamic'
+// VERSION 2.0 - FORCE REFRESH
 import { neonConfig, Pool } from '@neondatabase/serverless'
 import { PrismaNeon } from '@prisma/adapter-neon'
 import { PrismaClient } from '@prisma/client'
