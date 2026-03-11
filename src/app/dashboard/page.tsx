@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function CustomerDashboardPage() {
-  // Skip all database logic during Vercel build phase (CI or production-build phase).
   if (process.env.CI || process.env.NEXT_PHASE === 'phase-production-build') {
     return <div>Loading...</div>;
   }
