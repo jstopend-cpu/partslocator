@@ -11,10 +11,11 @@ export const getPrisma = () => {
   if (typeof window !== 'undefined') return {} as any
 
   if (!globalThis.prisma) {
-    const url = process.env.DATABASE_URL || NEON_URL
-    globalThis.prisma = new PrismaClient({
-      datasourceUrl: url,
-    } as any)
+    // Early Injection: set env so Prisma 7's empty constructor can read it
+    if (!process.env.DATABASE_URL) {
+      process.env.DATABASE_URL = NEON_URL
+    }
+    globalThis.prisma = new PrismaClient()
   }
   return globalThis.prisma
 }
