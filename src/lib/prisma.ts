@@ -1,7 +1,12 @@
 import { PrismaClient } from '@prisma/client'
 
+const DATABASE_URL = "postgresql://neondb_owner:npg_KNEMJt9qIZy0@ep-wild-darkness-ad7dmhn8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+
 const prismaClientSingleton = () => {
-  return new PrismaClient()
+  // Στην Prisma 7, αν δεν υπάρχει env var, πρέπει να το περάσουμε έτσι:
+  return new PrismaClient({
+    datasourceUrl: DATABASE_URL
+  } as any)
 }
 
 declare global {
