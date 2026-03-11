@@ -11,6 +11,7 @@ import {
   Hash,
   Building2,
   ClipboardList,
+  X,
 } from "lucide-react";
 
 type Product = {
@@ -21,6 +22,8 @@ type Product = {
   price: string | number;
   stock: number;
 };
+
+const BRAND_OPTIONS = ["All", "Toyota", "Audi", "BMW", "Directed"] as const;
 
 const BrandBadge = ({ brand }: { brand: string }) => {
   const colors: Record<string, string> = {
@@ -40,6 +43,28 @@ const BrandBadge = ({ brand }: { brand: string }) => {
   );
 };
 
+const StockBadge = ({ stock }: { stock: number }) => {
+  if (stock === 0) {
+    return (
+      <span className="inline-flex items-center rounded-md border border-red-500/40 bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-300">
+        Μη διαθέσιμο
+      </span>
+    );
+  }
+  if (stock >= 1 && stock <= 5) {
+    return (
+      <span className="inline-flex items-center rounded-md border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
+        Χαμηλό · {stock} τμχ
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-300">
+      {stock} τμχ
+    </span>
+  );
+};
+
 const NAV_ITEMS = [
   { label: "Dashboard", icon: LayoutDashboard, active: true },
   { label: "Inventory", icon: Package, active: false },
@@ -49,7 +74,8 @@ const NAV_ITEMS = [
 
 export default function PartsLocatorDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [searchTerm, setSearchTerm] = useState(""); // <--- ΤΟ ΚΛΕΙΔΙ 1
+  const [searchTerm, setSearchTerm] = useState("");
+  const [brandFilter, setBrandFilter] = useState<string>("All");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,14 +110,16 @@ export default function PartsLocatorDashboard() {
     fetchProducts();
   }, []);
 
-  // ΛΟΓΙΚΗ ΦΙΛΤΡΑΡΙΣΜΑΤΟΣ (ΤΟ ΚΛΕΙΔΙ 2)
   const filteredProducts = products.filter((product) => {
-    const search = searchTerm.toLowerCase();
-    return (
+    const search = searchTerm.toLowerCase().trim();
+    const matchesSearch =
+      !search ||
       product.name?.toLowerCase().includes(search) ||
       product.ean?.toLowerCase().includes(search) ||
-      product.supplier?.toLowerCase().includes(search)
-    );
+      product.supplier?.toLowerCase().includes(search);
+    const matchesBrand =
+      brandFilter === "All" || product.supplier === brandFilter;
+    return matchesSearch && matchesBrand;
   });
 
   const stats = [
@@ -128,16 +156,43 @@ export default function PartsLocatorDashboard() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="flex items-center gap-4 px-6 py-4 border-b border-slate-800 bg-slate-950/98 shrink-0">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+        <header className="flex flex-wrap items-center gap-4 px-6 py-4 border-b border-slate-800 bg-slate-950/98 shrink-0">
+          <div className="relative flex-1 min-w-[200px] max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500 pointer-events-none" />
             <input
               type="text"
               placeholder="Αναζήτηση ανταλλακτικών, SKU..."
-              value={searchTerm} // <--- ΣΥΝΔΕΣΗ ΜΕ STATE
-              onChange={(e) => setSearchTerm(e.target.value)} // <--- ΕΝΗΜΕΡΩΣΗ STATE
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-slate-100 focus:border-blue-500 outline-none transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-10 py-2.5 text-slate-100 focus:border-blue-500 outline-none transition-all"
             />
+            {searchTerm.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700/80 transition-colors"
+                aria-label="Καθαρισμός αναζήτησης"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-slate-500 mr-1">Brand:</span>
+            {BRAND_OPTIONS.map((brand) => (
+              <button
+                key={brand}
+                type="button"
+                onClick={() => setBrandFilter(brand)}
+                className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-all ${
+                  brandFilter === brand
+                    ? "border-blue-500/50 bg-blue-500/20 text-blue-300"
+                    : "border-slate-700 bg-slate-800/80 text-slate-400 hover:border-slate-600 hover:text-slate-200"
+                }`}
+              >
+                {brand}
+              </button>
+            ))}
           </div>
           <button 
             onClick={() => setIsModalOpen(true)}
@@ -202,14 +257,19 @@ export default function PartsLocatorDashboard() {
                   <tbody>
                     {Array.isArray(filteredProducts) &&
                       filteredProducts.map((product) => (
-                        <tr key={product.id} className="border-b border-slate-800/80 hover:bg-slate-800/50">
+                        <tr
+                          key={product.id}
+                          className="border-b border-slate-800/80 hover:bg-slate-800/50 transition-all duration-200"
+                        >
                           <td className="px-6 py-3 text-slate-200">{product.name}</td>
                           <td className="px-6 py-3 font-mono text-slate-400">{product.ean}</td>
                           <td className="px-6 py-3">
                             <BrandBadge brand={product.supplier} />
                           </td>
                           <td className="px-6 py-3 text-slate-200">{formatPrice(product.price)}</td>
-                          <td className="px-6 py-3 text-slate-200">{product.stock}</td>
+                          <td className="px-6 py-3">
+                            <StockBadge stock={product.stock} />
+                          </td>
                         </tr>
                       ))}
                   </tbody>
