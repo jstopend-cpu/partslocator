@@ -5,10 +5,15 @@ import DashboardClient from "./DashboardClient";
 import type { DashboardProduct } from "./DashboardClient";
 
 export default function CustomerDashboardPage() {
+  const [isMounted, setIsMounted] = useState(false);
   const [products, setProducts] = useState<DashboardProduct[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -55,6 +60,10 @@ export default function CustomerDashboardPage() {
     () => [...new Set(safeProducts.map((p) => p.supplier))].filter(Boolean).sort(),
     [safeProducts]
   );
+
+  if (!isMounted) {
+    return <div className="p-20">Loading...</div>;
+  }
 
   if (loading) {
     return <div>Loading...</div>;
