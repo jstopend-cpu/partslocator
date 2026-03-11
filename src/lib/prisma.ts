@@ -14,12 +14,11 @@ declare global {
   var prisma: PrismaClient | undefined
 }
 
-const connectionString = process.env.DATABASE_URL || NEON_URL
-
 export const getPrisma = () => {
   if (typeof window !== 'undefined') return {} as any
 
   if (!globalThis.prisma) {
+    const connectionString = process.env.DATABASE_URL || NEON_URL
     const neonPool = new Pool({ connectionString })
     const adapter = new PrismaNeon(neonPool as any)
     globalThis.prisma = new PrismaClient({ adapter })
