@@ -51,7 +51,10 @@ export default function CustomerDashboardPage() {
     return () => controller.abort();
   }, []);
 
-  const safeProductsList = useMemo(() => (products || []) as DashboardProduct[], [products]);
+  const safeProductsList = useMemo(
+    () => (Array.isArray(products) ? products : []) as DashboardProduct[],
+    [products]
+  );
 
   const suppliers = useMemo(
     () =>
@@ -77,7 +80,7 @@ export default function CustomerDashboardPage() {
       page={1}
       pageSize={50}
       totalCount={typeof totalCount === "number" ? totalCount : 0}
-      suppliers={suppliers}
+      suppliers={Array.isArray(suppliers) ? suppliers : []}
     />
   );
 }

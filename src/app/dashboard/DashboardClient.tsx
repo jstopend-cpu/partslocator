@@ -74,7 +74,9 @@ export default function DashboardClient({
 }: Props) {
   const router = useRouter();
   const [customer, setCustomer] = useState<CustomerSession | null>(null);
-  const [products] = useState<DashboardProduct[]>(initialProducts);
+  const [products] = useState<DashboardProduct[]>(
+    Array.isArray(initialProducts) ? initialProducts : []
+  );
   const [search, setSearch] = useState("");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
   const [error, setError] = useState<string | null>(null);
@@ -149,8 +151,9 @@ export default function DashboardClient({
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
     const supplierValue = supplierFilter === "all" ? null : supplierFilter;
+    const list = products || [];
 
-    return products.filter((product) => {
+    return list.filter((product) => {
       if (supplierValue && product.supplier !== supplierValue) {
         return false;
       }
@@ -165,12 +168,12 @@ export default function DashboardClient({
   }, [products, search, supplierFilter]);
 
   const totalProducts = totalCount;
-  const totalOnPage = products.length;
+  const totalOnPage = (products || []).length;
   const startItem = totalOnPage === 0 ? 0 : (page - 1) * pageSize + 1;
   const endItem = totalOnPage === 0 ? 0 : (page - 1) * pageSize + totalOnPage;
   const hasPrevious = page > 1;
   const hasNext = endItem < totalProducts;
-  const inStock = products.filter((p) => p.stock > 0).length;
+  const inStock = (products || []).filter((p) => p.stock > 0).length;
   const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   const getStockBadgeStyles = (stock: number) => {
@@ -200,16 +203,17 @@ export default function DashboardClient({
 
   const handleAddToCart = (product: DashboardProduct) => {
     setCart((prev) => {
-      const existing = prev.find((item) => item.productId === product.id);
+      const list = prev || [];
+      const existing = list.find((item) => item.productId === product.id);
       if (existing) {
-        return prev.map((item) =>
+        return list.map((item) =>
           item.productId === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item,
         );
       }
       return [
-        ...prev,
+        ...list,
         {
           productId: product.id,
           name: product.name,
@@ -223,7 +227,7 @@ export default function DashboardClient({
 
   const updateQuantity = (productId: string, delta: number) => {
     setCart((prev) =>
-      prev
+      (prev || [])
         .map((item) =>
           item.productId === productId
             ? { ...item, quantity: item.quantity + delta }
@@ -382,7 +386,7 @@ export default function DashboardClient({
                   className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                 >
                   <option value="all">Όλοι οι προμηθευτές</option>
-                  {suppliers.map((s) => (
+                  {(suppliers || []).map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
@@ -482,7 +486,7 @@ export default function DashboardClient({
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {!error &&
-                filteredProducts.map((product) => {
+                (filteredProducts || []).map((product) => {
                   const stockStyles = getStockBadgeStyles(product.stock);
                   const inStockBool = product.stock > 0;
                   return (
@@ -582,7 +586,7 @@ export default function DashboardClient({
             ) : (
               <div className="space-y-3">
                 <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
-                  {cart.map((item) => (
+                  {(cart || []).map((item) => (
                     <div
                       key={item.productId}
                       className="rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-2"
