@@ -1,13 +1,39 @@
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+
 export const dynamic = "force-dynamic";
 
-export async function GET(request?: any) {
-try {
-const { prisma } = await import("@/lib/db");
-const products = await prisma.product.findMany({
-orderBy: { id: 'desc' }
-});
-return Response.json(products);
-} catch (error: any) {
-return Response.json({ error: error.message }, { status: 500 });
-}
+export async function GET() {
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ products: [], totalCount: 0 });
+  }
+
+  if (!prisma) {
+    return NextResponse.json({ products: [], totalCount: 0 });
+  }
+
+  try {
+    const [products, totalCount] = await Promise.all([
+      prisma.product.findMany({
+        take: 50,
+        include: { brand: true, dealer: true },
+      }),
+      prisma.product.count(),
+    ]);
+
+    const mapped = products.map((p) => ({
+      id: p.id,
+      name: p.name || "Χωρίς Όνομα",
+      ean: p.id,
+      supplier: p.dealer?.name || "VOLVO",
+      price: p.price ?? 0,
+      stock: p.stock ?? 0,
+      updatedAt: p.updatedAt ? new Date(p.updatedAt).toISOString() : new Date().toISOString(),
+    }));
+
+    return NextResponse.json({ products: mapped, totalCount });
+  } catch (error) {
+    console.error("API products error:", error);
+    return NextResponse.json({ products: [], totalCount: 0 }, { status: 200 });
+  }
 }
