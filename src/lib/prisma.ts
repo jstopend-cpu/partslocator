@@ -1,4 +1,3 @@
-// VERSION 2.0 - FORCE REFRESH
 import { neonConfig, Pool } from '@neondatabase/serverless'
 import { PrismaNeon } from '@prisma/adapter-neon'
 import { PrismaClient } from '@prisma/client'
@@ -16,11 +15,9 @@ export const getPrisma = () => {
   if (typeof window !== 'undefined') return {} as any
 
   if (!globalThis.prisma) {
-    console.log('DB_CHECK: Attempting connection to Neon...')
-    const NEON_URL =
+    const directUrl =
       "postgresql://neondb_owner:npg_KNEMJt9qIZy0@ep-wild-darkness-ad7dmhn8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
-    const connectionString = process.env.DATABASE_URL || NEON_URL
-    const neonPool = new Pool({ connectionString })
+    const neonPool = new Pool({ connectionString: directUrl })
     const adapter = new PrismaNeon(neonPool as any)
     globalThis.prisma = new PrismaClient({ adapter })
   }
@@ -33,15 +30,5 @@ const prisma = new Proxy({} as PrismaClient, {
     return (client as any)[prop]
   },
 })
-
-export { prisma }
-
-export const query = async (strings: TemplateStringsArray, ...values: unknown[]) => {
-  let sql = ''
-  strings.forEach((str, i) => {
-    sql += str + (values[i] !== undefined ? '$' + (i + 1) : '')
-  })
-  return getPrisma().$queryRawUnsafe(sql, ...values)
-}
 
 export default prisma
