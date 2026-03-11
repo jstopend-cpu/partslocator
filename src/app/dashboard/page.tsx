@@ -6,7 +6,7 @@ import type { DashboardProduct } from "./DashboardClient";
 
 export default function CustomerDashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
-  const [products, setProducts] = useState<DashboardProduct[] | null>(null);
+  const [products, setProducts] = useState<DashboardProduct[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export default function CustomerDashboardPage() {
           return;
         }
 
-        setProducts(Array.isArray(data?.products) ? data.products : []);
+        setProducts(Array.isArray(data.products) ? data.products : []);
         setTotalCount(typeof data?.totalCount === "number" ? data.totalCount : 0);
       } catch (e) {
         if (e instanceof Error && e.name === "AbortError") {
@@ -57,8 +57,9 @@ export default function CustomerDashboardPage() {
   );
 
   const suppliers = useMemo(
-    () => [...new Set(safeProducts.map((p) => p.supplier))].filter(Boolean).sort(),
-    [safeProducts]
+    () =>
+      [...new Set((products || []).map((p) => p.supplier))].filter(Boolean).sort(),
+    [products]
   );
 
   if (!isMounted) {
@@ -71,10 +72,6 @@ export default function CustomerDashboardPage() {
 
   if (error) {
     return <div className="p-10">{error}</div>;
-  }
-
-  if (!products) {
-    return <div>Loading...</div>;
   }
 
   return (
