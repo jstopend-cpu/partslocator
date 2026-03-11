@@ -1,10 +1,10 @@
 {
   "name": "parts-locator",
-  "version": "0.1.0",
+  "version": "2.0.0-FINAL",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate --no-engine && next build",
     "start": "next start",
     "lint": "eslint",
     "install:legacy": "npm install --legacy-peer-deps"

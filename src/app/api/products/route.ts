@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { getPrisma } from "@/lib/db";
+import { getPrisma } from "@/database/client";
 
 export async function GET() {
   try {

@@ -1,16 +1,26 @@
-import { NextRequest } from "next/server";
-import prisma from "@/lib/db";
+export const dynamic = 'force-dynamic'
+import { NextRequest, NextResponse } from 'next/server'
+import prisma from '@/database/client'
 
-export const dynamic = "force-dynamic";
-
-export async function DELETE(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { id } = await request.json();
-    // TODO: prisma.product.delete({ where: { id } }) when implemented
-    return Response.json({ success: true });
+    const { ids } = await req.json()
+
+    if (!ids || !Array.isArray(ids)) {
+      return NextResponse.json({ error: 'Invalid IDs' }, { status: 400 })
+    }
+
+    const stringIds = ids.map((id: unknown) => String(id))
+
+    await prisma.product.deleteMany({
+      where: {
+        id: { in: stringIds },
+      },
+    })
+
+    return NextResponse.json({ success: true })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("Delete product error:", error);
-    return Response.json({ error: message }, { status: 500 });
+    console.error('Delete error:', error)
+    return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }

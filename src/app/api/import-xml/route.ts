@@ -6,7 +6,7 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    const prisma = (await import("@/lib/db")).default;
+    const prisma = (await import("@/database/client")).default;
     const count = await prisma.product.count();
     return Response.json({ success: true, total: count });
   } catch (error) {
@@ -18,7 +18,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const prisma = (await import("@/lib/db")).default;
+    const prisma = (await import("@/database/client")).default;
     const body = await request.json();
     const products = body.products || [];
     // ... rest of POST logic when implemented

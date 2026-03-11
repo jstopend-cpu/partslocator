@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import prisma from '@/database/client';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,10 +9,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid IDs" }, { status: 400 });
     }
 
-    await query(
-      `DELETE FROM products WHERE id = ANY($1)`,
-      [ids]
-    );
+    await prisma.product.deleteMany({
+      where: { id: { in: ids.map((id: unknown) => String(id)) } },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
