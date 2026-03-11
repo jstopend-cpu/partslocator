@@ -6,7 +6,7 @@ import type { DashboardProduct } from "./DashboardClient";
 
 export default function CustomerDashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
-  const [products, setProducts] = useState([]);
+  const [dashboardItems, setDashboardItems] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +23,7 @@ export default function CustomerDashboardPage() {
       .then((res) => {
         if (!res.ok) throw new Error("Network response was not ok");
         if (res.status === 404) {
-          setProducts([]);
+          setDashboardItems([]);
           setTotalCount(0);
           setLoading(false);
           return null;
@@ -32,17 +32,13 @@ export default function CustomerDashboardPage() {
       })
       .then((data) => {
         if (data === null) return;
-        if (data && Array.isArray(data.products)) {
-          setProducts(data.products);
-        } else {
-          setProducts([]);
-        }
+        setDashboardItems(Array.isArray(data.products) ? data.products : []);
         setTotalCount(typeof data?.totalCount === "number" ? data.totalCount : 0);
         setLoading(false);
       })
       .catch((e) => {
         if (e instanceof Error && e.name === "AbortError") return;
-        setProducts([]);
+        setDashboardItems([]);
         setTotalCount(0);
         setError("Database connection error. Please refresh.");
         setLoading(false);
@@ -52,14 +48,16 @@ export default function CustomerDashboardPage() {
   }, []);
 
   const safeProductsList = useMemo(
-    () => (Array.isArray(products) ? products : []) as DashboardProduct[],
-    [products]
+    () => (Array.isArray(dashboardItems) ? dashboardItems : []) as DashboardProduct[],
+    [dashboardItems]
   );
 
   const suppliers = useMemo(
     () =>
-      [...new Set((products || []).map((p: DashboardProduct) => p.supplier))].filter(Boolean).sort(),
-    [products]
+      [...new Set((dashboardItems || []).map((p: DashboardProduct) => p.supplier))]
+        .filter(Boolean)
+        .sort(),
+    [dashboardItems]
   );
 
   if (!isMounted) {
