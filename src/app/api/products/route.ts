@@ -1,10 +1,9 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { getPrisma } from "@/database/client";
+import prisma from "@/database/client";
 
 export async function GET() {
   try {
-    const prisma = getPrisma()
     const [products, totalCount] = await Promise.all([
       prisma.product.findMany({
         take: 50,
