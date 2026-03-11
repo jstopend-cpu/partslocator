@@ -11,8 +11,14 @@ export const getPrisma = () => {
   if (typeof window !== 'undefined') return {} as any
 
   if (!globalThis.prisma) {
-    process.env.DATABASE_URL = process.env.DATABASE_URL || NEON_URL
-    globalThis.prisma = new PrismaClient()
+    console.log('DATABASE_URL is:', process.env.DATABASE_URL ? 'Defined' : 'Not defined')
+    globalThis.prisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL || NEON_URL,
+        },
+      },
+    } as any)
   }
   return globalThis.prisma
 }
