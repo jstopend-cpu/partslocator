@@ -1,39 +1,40 @@
 datasource db {
-provider = "postgresql"
+  provider = "postgresql"
+  url      = "postgresql://neondb_owner:npg_KNEMJt9qIZy0@ep-wild-darkness-ad7dmhn8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
 }
 
 generator client {
-provider   = "prisma-client-js"
-engineType = "library"
+  provider   = "prisma-client-js"
+  engineType = "library"
 }
 
 model Brand {
-id       String    @id @default(cuid())
-name     String    @unique
-products Product[]
-dealers  Dealer[]  @relation("BrandToDealer")
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+  dealers  Dealer[]  @relation("BrandToDealer")
 }
 
 model Dealer {
-id       String    @id @default(cuid())
-name     String
-location String?
-email    String    @unique
-xmlUrl   String?
-products Product[]
-brands   Brand[]   @relation("BrandToDealer")
+  id       String    @id @default(cuid())
+  name     String
+  location String?
+  email    String    @unique
+  xmlUrl   String?
+  products Product[]
+  brands   Brand[]   @relation("BrandToDealer")
 }
 
 model Product {
-id         String   @id
-partNumber String
-name       String
-price      Float
-stock      Int
-brandId    String
-brand      Brand    @relation(fields: [brandId], references: [id])
-dealerId   String
-dealer     Dealer   @relation(fields: [dealerId], references: [id])
-createdAt  DateTime @default(now())
-updatedAt  DateTime @default(now()) @updatedAt
+  id         String   @id
+  partNumber String
+  name       String
+  price      Float
+  stock      Int
+  brandId    String
+  brand      Brand    @relation(fields: [brandId], references: [id])
+  dealerId   String
+  dealer     Dealer   @relation(fields: [dealerId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
 }
