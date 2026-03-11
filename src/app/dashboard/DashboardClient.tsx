@@ -150,27 +150,17 @@ export default function DashboardClient({
   };
 
   const filteredProducts = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    const supplierValue = supplierFilter === "all" ? null : supplierFilter;
     const list = Array.isArray(products) ? products : [];
+    const supplierValue = supplierFilter === "all" ? null : supplierFilter;
+    const term = searchTerm.trim().toLowerCase();
 
     return list.filter((product) => {
-      if (supplierValue && product.supplier !== supplierValue) {
-        return false;
-      }
-
+      if (supplierValue && product.supplier !== supplierValue) return false;
       if (!term) return true;
 
       const name = (product.name ?? "").toLowerCase();
       const partNumber = (product.partNumber ?? product.ean ?? "").toLowerCase();
-      const ean = (product.ean ?? "").toLowerCase();
-      const supplier = (product.supplier ?? "").toLowerCase();
-      return (
-        name.includes(term) ||
-        partNumber.includes(term) ||
-        ean.includes(term) ||
-        supplier.includes(term)
-      );
+      return name.includes(term) || partNumber.includes(term);
     });
   }, [products, searchTerm, supplierFilter]);
 
