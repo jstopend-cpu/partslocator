@@ -12,13 +12,15 @@ export async function GET() {
     return NextResponse.json({ products: [], totalCount: 0 });
   }
 
+  const db = prisma;
+
   try {
     const [products, totalCount] = await Promise.all([
-      prisma.product.findMany({
+      db.product.findMany({
         take: 50,
         include: { brand: true, dealer: true },
       }),
-      prisma.product.count(),
+      db.product.count(),
     ]);
 
     const mapped = products.map((p) => ({
