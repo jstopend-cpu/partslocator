@@ -6,7 +6,7 @@ import type { DashboardProduct } from "./DashboardClient";
 
 export default function CustomerDashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
-  const [products, setProducts] = useState<DashboardProduct[]>([]);
+  const [products, setProducts] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,13 +56,13 @@ export default function CustomerDashboardPage() {
   }, []);
 
   const safeProducts = useMemo(
-    () => (products && Array.isArray(products) ? products : []),
+    () => (products && Array.isArray(products) ? products : []) as DashboardProduct[],
     [products]
   );
 
   const suppliers = useMemo(
     () =>
-      [...new Set((products || []).map((p) => p.supplier))].filter(Boolean).sort(),
+      [...new Set((products || []).map((p: DashboardProduct) => p.supplier))].filter(Boolean).sort(),
     [products]
   );
 
@@ -80,7 +80,7 @@ export default function CustomerDashboardPage() {
 
   return (
     <DashboardClient
-      initialProducts={safeProducts}
+      initialProducts={(products || []) as DashboardProduct[]}
       page={1}
       pageSize={50}
       totalCount={typeof totalCount === "number" ? totalCount : 0}
