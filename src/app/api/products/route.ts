@@ -12,6 +12,7 @@ export async function GET() {
     const list = Array.isArray(products)
       ? products.map((p) => ({
           id: p.id,
+          partNumber: p.partNumber ?? "",
           name: p.name || "Χωρίς Όνομα",
           ean: p.id,
           supplier: p.dealer?.name || "VOLVO",

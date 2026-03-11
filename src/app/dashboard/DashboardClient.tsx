@@ -21,6 +21,7 @@ type CustomerSession = {
 
 export type DashboardProduct = {
   id: string;
+  partNumber?: string;
   name: string;
   ean: string;
   supplier: string;
@@ -77,7 +78,7 @@ export default function DashboardClient({
   const [products] = useState<DashboardProduct[]>(
     Array.isArray(initialProducts) ? initialProducts : []
   );
-  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
   const [error, setError] = useState<string | null>(null);
   const [cart, setCart] = useState<
@@ -149,7 +150,7 @@ export default function DashboardClient({
   };
 
   const filteredProducts = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const term = searchTerm.trim().toLowerCase();
     const supplierValue = supplierFilter === "all" ? null : supplierFilter;
     const list = Array.isArray(products) ? products : [];
 
@@ -158,14 +159,20 @@ export default function DashboardClient({
         return false;
       }
 
-      if (!query) return true;
+      if (!term) return true;
 
-      const name = product.name.toLowerCase();
-      const ean = product.ean.toLowerCase();
-      const supplier = product.supplier.toLowerCase();
-      return name.includes(query) || ean.includes(query) || supplier.includes(query);
+      const name = (product.name ?? "").toLowerCase();
+      const partNumber = (product.partNumber ?? product.ean ?? "").toLowerCase();
+      const ean = (product.ean ?? "").toLowerCase();
+      const supplier = (product.supplier ?? "").toLowerCase();
+      return (
+        name.includes(term) ||
+        partNumber.includes(term) ||
+        ean.includes(term) ||
+        supplier.includes(term)
+      );
     });
-  }, [products, search, supplierFilter]);
+  }, [products, searchTerm, supplierFilter]);
 
   const totalProducts = totalCount;
   const productsList = Array.isArray(products) ? products : [];
@@ -369,8 +376,8 @@ export default function DashboardClient({
                   type="search"
                   placeholder="Αναζήτηση με όνομα, κωδικό, EAN..."
                   className="w-full rounded-lg border border-slate-700 bg-slate-900/90 py-2.5 pl-10 pr-3 text-sm text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               <div className="flex w-full items-center gap-2 text-xs text-slate-400 md:w-64">
@@ -445,7 +452,7 @@ export default function DashboardClient({
             {!error && filteredProducts.length === 0 && (
               <div className="rounded-xl border border-slate-800 bg-slate-900/80 px-4 py-6 text-sm text-slate-400">
                 Δεν βρέθηκαν προϊόντα για την αναζήτηση{" "}
-                <span className="font-medium text-slate-200">"{search}"</span>. Δοκίμασε άλλη
+                <span className="font-medium text-slate-200">"{searchTerm}"</span>. Δοκίμασε άλλη
                 ονομασία ή EAN.
               </div>
             )}
