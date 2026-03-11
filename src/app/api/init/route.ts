@@ -2,7 +2,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { query } = await import("@/database/client");
+    const prisma = (await import("@/database/client")).default;
+    await prisma.$queryRaw`SELECT 1`;
+    return Response.json({ ok: true });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }
