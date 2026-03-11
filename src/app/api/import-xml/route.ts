@@ -8,6 +8,7 @@ export const revalidate = 0;
 
 const VOLVO_EMAIL = "volvo@parts.loc";
 
+/** Ensures every new/updated product is saved with supplier 'Volvo' (via dealerId/brandId). */
 async function getOrCreateVolvoDealerAndBrand() {
   let dealer = await prisma.dealer.findFirst({
     where: { email: VOLVO_EMAIL },

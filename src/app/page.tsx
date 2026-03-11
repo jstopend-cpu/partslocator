@@ -23,13 +23,14 @@ type Product = {
   stock: number;
 };
 
-const BRAND_OPTIONS = ["All", "Toyota", "Audi", "BMW", "Directed"] as const;
+const BRAND_OPTIONS = ["All", "Volvo"] as const;
 
 const BrandBadge = ({ brand }: { brand: string }) => {
   const colors: Record<string, string> = {
+    Volvo: "bg-blue-600/20 text-blue-400 border-blue-500/30",
     Toyota: "bg-red-600/20 text-red-400 border-red-500/30",
     Audi: "bg-slate-700/50 text-slate-300 border-slate-500/30",
-    BMW: "bg-blue-600/20 text-blue-400 border-blue-500/30",
+    BMW: "bg-slate-600/20 text-slate-400 border-slate-500/30",
     Directed: "bg-violet-600/20 text-violet-300 border-violet-500/30",
   };
   return (
@@ -68,14 +69,15 @@ const StockBadge = ({ stock }: { stock: number }) => {
 const NAV_ITEMS = [
   { label: "Dashboard", icon: LayoutDashboard, active: true },
   { label: "Inventory", icon: Package, active: false },
-  { label: "Suppliers", icon: Truck, active: false, brands: ["Toyota", "Audi", "BMW"] },
+  { label: "Suppliers", icon: Truck, active: false, brands: ["Volvo"] },
   { label: "Settings", icon: Settings, active: false },
 ];
 
 export default function PartsLocatorDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [brandFilter, setBrandFilter] = useState<string>("All");
+  const [selectedBrand, setSelectedBrand] = useState<string>("All");
+  const [fixingBrands, setFixingBrands] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -112,13 +114,14 @@ export default function PartsLocatorDashboard() {
 
   const filteredProducts = products.filter((product) => {
     const search = searchTerm.toLowerCase().trim();
+    const supplier = product.supplier || "Volvo";
     const matchesSearch =
       !search ||
       product.name?.toLowerCase().includes(search) ||
       product.ean?.toLowerCase().includes(search) ||
-      product.supplier?.toLowerCase().includes(search);
+      supplier.toLowerCase().includes(search);
     const matchesBrand =
-      brandFilter === "All" || product.supplier === brandFilter;
+      selectedBrand === "All" || supplier === selectedBrand;
     return matchesSearch && matchesBrand;
   });
 
@@ -183,9 +186,9 @@ export default function PartsLocatorDashboard() {
               <button
                 key={brand}
                 type="button"
-                onClick={() => setBrandFilter(brand)}
+                onClick={() => setSelectedBrand(brand)}
                 className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-all ${
-                  brandFilter === brand
+                  selectedBrand === brand
                     ? "border-blue-500/50 bg-blue-500/20 text-blue-300"
                     : "border-slate-700 bg-slate-800/80 text-slate-400 hover:border-slate-600 hover:text-slate-200"
                 }`}
@@ -194,6 +197,30 @@ export default function PartsLocatorDashboard() {
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            disabled={fixingBrands}
+            onClick={async () => {
+              setFixingBrands(true);
+              try {
+                const res = await fetch("/api/fix-brands");
+                const data = await res.json();
+                if (data.success) {
+                  alert(`Ορίστηκαν ${data.updated} προϊόντα σε Volvo.`);
+                  fetchProducts();
+                } else {
+                  alert(data.error || "Σφάλμα");
+                }
+              } catch (e) {
+                alert("Σφάλμα δικτύου");
+              } finally {
+                setFixingBrands(false);
+              }
+            }}
+            className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs font-medium text-amber-300 hover:bg-amber-500/25 disabled:opacity-50"
+          >
+            {fixingBrands ? "Περιμένετε..." : "Ορισμός όλων σε Volvo"}
+          </button>
           <button 
             onClick={() => setIsModalOpen(true)}
             className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg font-medium flex items-center gap-2"
@@ -264,7 +291,7 @@ export default function PartsLocatorDashboard() {
                           <td className="px-6 py-3 text-slate-200">{product.name}</td>
                           <td className="px-6 py-3 font-mono text-slate-400">{product.ean}</td>
                           <td className="px-6 py-3">
-                            <BrandBadge brand={product.supplier} />
+                            <BrandBadge brand={product.supplier || "Volvo"} />
                           </td>
                           <td className="px-6 py-3 text-slate-200">{formatPrice(product.price)}</td>
                           <td className="px-6 py-3">
