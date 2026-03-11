@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardClient from "./DashboardClient";
 import type { DashboardProduct } from "./DashboardClient";
 
@@ -15,7 +15,9 @@ export default function CustomerDashboardPage() {
     setIsMounted(true);
   }, []);
 
-  useEffect(() => {
+  const loadProducts = useCallback(() => {
+    setError(null);
+    setLoading(true);
     const controller = new AbortController();
     const { signal } = controller;
 
@@ -47,6 +49,13 @@ export default function CustomerDashboardPage() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    const cleanup = loadProducts();
+    return () => {
+      if (typeof cleanup === "function") cleanup();
+    };
+  }, [loadProducts]);
+
   const safeProductsList = useMemo(
     () => (Array.isArray(dashboardData) ? dashboardData : []) as DashboardProduct[],
     [dashboardData]
@@ -69,7 +78,18 @@ export default function CustomerDashboardPage() {
   }
 
   if (error) {
-    return <div className="p-10">{error}</div>;
+    return (
+      <div className="p-10">
+        <p className="mb-3 text-slate-300">{error}</p>
+        <button
+          type="button"
+          onClick={() => loadProducts()}
+          className="rounded-md border border-slate-600 bg-slate-700 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-600"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (

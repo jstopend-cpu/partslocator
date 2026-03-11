@@ -32,7 +32,13 @@ export async function GET() {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Database error";
-    console.error("API products error:", error);
+    console.error("[API /api/products] Full error:", error)
+    if (error instanceof Error && error.stack) {
+      console.error("[API /api/products] Stack:", error.stack)
+    }
+    if (error && typeof error === "object" && "code" in error) {
+      console.error("[API /api/products] Error code/meta:", JSON.stringify(error, null, 2))
+    }
     return NextResponse.json(
       { error: message, products: [], totalCount: 0 },
       { status: 503 }

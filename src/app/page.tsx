@@ -306,7 +306,14 @@ export default function PartsLocatorDashboard() {
                   {error && !loading && (
                     <tr>
                       <td colSpan={5} className="px-6 py-6 text-sm text-red-400">
-                        {error}
+                        <span className="block mb-2">{error}</span>
+                        <button
+                          type="button"
+                          onClick={() => fetchProducts()}
+                          className="rounded-md border border-slate-600 bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-600"
+                        >
+                          Retry
+                        </button>
                       </td>
                     </tr>
                   )}
