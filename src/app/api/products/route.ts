@@ -8,7 +8,6 @@ export async function GET() {
       take: 50,
       include: { brand: true, dealer: true },
     });
-    const totalCount = await prisma.product.count();
 
     const list = Array.isArray(products)
       ? products.map((p) => ({
@@ -22,10 +21,7 @@ export async function GET() {
         }))
       : [];
 
-    return NextResponse.json({
-      products: Array.isArray(list) ? list : [],
-      totalCount: typeof totalCount === "number" ? totalCount : 0,
-    });
+    return NextResponse.json(list ?? []);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Database error";
     console.error("[API /api/products] Full error:", error)
@@ -35,9 +31,6 @@ export async function GET() {
     if (error && typeof error === "object" && "code" in error) {
       console.error("[API /api/products] Error code/meta:", JSON.stringify(error, null, 2))
     }
-    return NextResponse.json(
-      { error: message, products: [], totalCount: 0 },
-      { status: 503 }
-    );
+    return NextResponse.json([], { status: 503 });
   }
 }

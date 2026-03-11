@@ -151,7 +151,7 @@ export default function DashboardClient({
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
     const supplierValue = supplierFilter === "all" ? null : supplierFilter;
-    const list = products || [];
+    const list = Array.isArray(products) ? products : [];
 
     return list.filter((product) => {
       if (supplierValue && product.supplier !== supplierValue) {
@@ -168,12 +168,13 @@ export default function DashboardClient({
   }, [products, search, supplierFilter]);
 
   const totalProducts = totalCount;
-  const totalOnPage = (products || []).length;
+  const productsList = Array.isArray(products) ? products : [];
+  const totalOnPage = productsList.length;
   const startItem = totalOnPage === 0 ? 0 : (page - 1) * pageSize + 1;
   const endItem = totalOnPage === 0 ? 0 : (page - 1) * pageSize + totalOnPage;
   const hasPrevious = page > 1;
   const hasNext = endItem < totalProducts;
-  const inStock = (products || []).filter((p) => p.stock > 0).length;
+  const inStock = productsList.filter((p) => p.stock > 0).length;
   const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   const getStockBadgeStyles = (stock: number) => {

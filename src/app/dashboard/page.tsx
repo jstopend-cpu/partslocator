@@ -34,8 +34,9 @@ export default function CustomerDashboardPage() {
       })
       .then((data) => {
         if (data === null) return;
-        setDashboardData(Array.isArray(data.products) ? data.products : []);
-        setTotalCount(typeof data?.totalCount === "number" ? data.totalCount : 0);
+        const list = Array.isArray(data) ? data : Array.isArray(data?.products) ? data.products : [];
+        setDashboardData(list);
+        setTotalCount(Array.isArray(list) ? list.length : 0);
         setLoading(false);
       })
       .catch((e) => {
