@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client'
 
+const NEON_URL =
+  "postgresql://neondb_owner:npg_KNEMJt9qIZy0@ep-wild-darkness-ad7dmhn8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+
 declare global {
   var prisma: PrismaClient | undefined
 }
@@ -8,8 +11,15 @@ export const getPrisma = () => {
   if (typeof window !== 'undefined') return {} as any
 
   if (!globalThis.prisma) {
-    // DATABASE_URL is set in env; empty constructor avoids 'Unknown property datasources' in Prisma 7.
-    globalThis.prisma = new PrismaClient()
+    const url = process.env.DATABASE_URL || NEON_URL
+    globalThis.prisma = new PrismaClient({
+      __internal: {
+        useUds: false,
+        engine: {
+          endpoint: url,
+        },
+      },
+    } as any)
   }
   return globalThis.prisma
 }
