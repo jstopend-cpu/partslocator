@@ -1,43 +1,60 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DashboardClient from "./DashboardClient";
 import type { DashboardProduct } from "./DashboardClient";
 
 export default function CustomerDashboardPage() {
-  const [products, setProducts] = useState<DashboardProduct[]>([]);
+  const [products, setProducts] = useState<DashboardProduct[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
+    const { signal } = controller;
 
+    let aborted = false;
     async function load() {
       try {
-        const res = await fetch("/api/products");
-        if (!res.ok) throw new Error("Failed to load products");
-        const data = await res.json();
-        if (!cancelled) {
-          setProducts(data.products ?? []);
-          setTotalCount(data.totalCount ?? 0);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError("Database connection error. Please refresh.");
+        const res = await fetch("/api/products", { signal });
+        if (!res.ok) throw new Error("Network response was not ok");
+        const data = await res.json().catch(() => ({}));
+
+        if (res.status === 404) {
           setProducts([]);
           setTotalCount(0);
+          return;
         }
+
+        setProducts(Array.isArray(data?.products) ? data.products : []);
+        setTotalCount(typeof data?.totalCount === "number" ? data.totalCount : 0);
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") {
+          aborted = true;
+          return;
+        }
+        setProducts([]);
+        setTotalCount(0);
+        setError("Database connection error. Please refresh.");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!aborted) setLoading(false);
       }
     }
 
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, []);
+
+  const safeProducts = useMemo(
+    () => (Array.isArray(products) ? products : []),
+    [products]
+  );
+
+  const suppliers = useMemo(
+    () => [...new Set(safeProducts.map((p) => p.supplier))].filter(Boolean).sort(),
+    [safeProducts]
+  );
 
   if (loading) {
     return <div>Loading...</div>;
@@ -47,14 +64,16 @@ export default function CustomerDashboardPage() {
     return <div className="p-10">{error}</div>;
   }
 
-  const suppliers = [...new Set(products.map((p) => p.supplier))].filter(Boolean).sort();
+  if (!products) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <DashboardClient
-      initialProducts={products}
+      initialProducts={safeProducts}
       page={1}
       pageSize={50}
-      totalCount={totalCount}
+      totalCount={typeof totalCount === "number" ? totalCount : 0}
       suppliers={suppliers}
     />
   );
