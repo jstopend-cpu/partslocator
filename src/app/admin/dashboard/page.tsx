@@ -226,7 +226,7 @@ export default function AdminDashboardPage() {
                   <YAxis
                     stroke="#94a3b8"
                     tick={{ fill: "#e2e8f0", fontSize: 12 }}
-                    tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                    tickFormatter={(v: any) => `${((Number(v) || 0) / 1000).toFixed(0)}k`}
                   />
                   <Tooltip
                     contentStyle={{
@@ -236,7 +236,7 @@ export default function AdminDashboardPage() {
                     }}
                     labelStyle={{ color: "#e2e8f0" }}
                     formatter={(value: any) => [formatCurrency(Number(value) || 0), "Έσοδα"]}
-                    labelFormatter={(label) => label}
+                    labelFormatter={(label: any) => label ?? ""}
                   />
                   <Bar
                     dataKey="revenue"
@@ -270,8 +270,8 @@ export default function AdminDashboardPage() {
                     cx="50%"
                     cy="50%"
                     outerRadius={100}
-                    label={({ name, percent }) =>
-                      `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                    label={({ name, percent }: { name?: string; percent?: number }) =>
+                      `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`
                     }
                     labelLine={{ stroke: "#94a3b8" }}
                   >
@@ -290,11 +290,11 @@ export default function AdminDashboardPage() {
                       border: "1px solid #475569",
                       borderRadius: "8px",
                     }}
-                    formatter={(value: number) => [value, "Παραγγελίες"]}
+                    formatter={(value: any) => [Number(value) || 0, "Παραγγελίες"]}
                   />
                   <Legend
                     wrapperStyle={{ color: "#e2e8f0" }}
-                    formatter={(value) => <span className="text-slate-200">{value}</span>}
+                    formatter={(value: any) => <span className="text-slate-200">{value ?? ""}</span>}
                   />
                 </PieChart>
               </ResponsiveContainer>
