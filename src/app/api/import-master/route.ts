@@ -7,6 +7,7 @@ export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
 const parser = new Parser({ explicitArray: true, trim: true });
+const CHUNK_SIZE = 1000;
 
 type MasterXmlItem = {
   ean?: string[];
@@ -113,32 +114,29 @@ export async function POST(request: NextRequest) {
     }
     const rawItems = extractItems(parsed);
 
-    let processed = 0;
-
+    const records: { partNumber: string; name: string; brand: string; officialMsrp: number }[] = [];
     for (const raw of rawItems) {
       const partNumber = toStringField(raw.ean?.[0]);
       if (!partNumber) continue;
-
       const name = toStringField(raw.name?.[0]) || partNumber;
       const brand = toStringField(raw.brand?.[0]) || "Volvo";
-      const officialMsrp = toNumberField(raw.price?.[0]) ?? 0;
+      const officialMsrp = Number.parseFloat(String(raw.price?.[0] ?? "").replace(",", ".")) || 0;
+      records.push({ partNumber, name, brand, officialMsrp });
+    }
 
-      await prisma.masterProduct.upsert({
-        where: { partNumber },
-        create: {
-          partNumber,
-          name,
-          brand,
-          officialMsrp,
-        },
-        update: {
-          name,
-          brand,
-          officialMsrp,
-        },
+    let processed = 0;
+    for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+      const chunk = records.slice(i, i + CHUNK_SIZE);
+      await prisma.masterProduct.createMany({
+        data: chunk,
+        skipDuplicates: true,
       });
-
-      processed += 1;
+      processed += chunk.length;
+      const chunkNum = Math.floor(i / CHUNK_SIZE) + 1;
+      const totalChunks = Math.ceil(records.length / CHUNK_SIZE);
+      console.log(
+        `[import-master] Chunk ${chunkNum}/${totalChunks}: processed items ${i + 1}-${i + chunk.length} (${chunk.length} items)`,
+      );
     }
 
     return Response.json({
