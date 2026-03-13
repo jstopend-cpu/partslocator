@@ -361,7 +361,8 @@ export default function MarketplaceDashboard() {
                       <th className="px-6 py-3">Κωδικός</th>
                       <th className="px-6 py-3">Περιγραφή</th>
                       <th className="px-6 py-3">Brand</th>
-                      <th className="px-6 py-3">Επίσημη Τιμή (MSRP)</th>
+                      <th className="px-6 py-3">Τιμή (Χωρίς ΦΠΑ)</th>
+                      <th className="px-6 py-3">Τιμή (με ΦΠΑ 24%)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -407,20 +408,28 @@ export default function MarketplaceDashboard() {
                               {product.brand}
                             </td>
                             <td className="px-6 py-3 align-top text-slate-100">
-                              {formatCurrency(msrp)}
+                              {msrp == null || msrp === 0
+                                ? "—"
+                                : formatCurrency(msrp)}
                               {minOffer !== undefined &&
                                 Number.isFinite(minOffer) &&
-                                minOffer < msrp && (
+                                minOffer < msrp &&
+                                msrp > 0 && (
                                   <span className="ml-2 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
                                     Καλύτερη: {formatCurrency(minOffer)}
                                   </span>
                                 )}
                             </td>
+                            <td className="px-6 py-3 align-top text-slate-100">
+                              {msrp == null || msrp === 0
+                                ? "—"
+                                : formatCurrency(msrp * 1.24)}
+                            </td>
                           </tr>
 
                           {isExpanded && (
                             <tr className="border-b border-slate-800/80 bg-slate-950/80">
-                              <td colSpan={5} className="px-10 pb-4 pt-0">
+                              <td colSpan={6} className="px-10 pb-4 pt-0">
                                 {stocks.length === 0 ? (
                                   <div className="py-3 text-xs text-slate-500">
                                     Δεν υπάρχουν ακόμα εγγραφές αποθέματος από
