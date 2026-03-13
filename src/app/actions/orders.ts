@@ -247,7 +247,7 @@ export async function getDashboardStats(): Promise<DashboardStats | null> {
   const { userId } = await auth();
   if (userId !== ADMIN_USER_ID) return null;
 
-  const completedOrShipped = { status: { in: ["COMPLETED", "SHIPPED"] as const } };
+  const completedOrShipped = { status: { in: ["COMPLETED", "SHIPPED"] as string[] } };
 
   const [
     ordersForRevenue,
