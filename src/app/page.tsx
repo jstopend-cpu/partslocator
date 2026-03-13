@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
+import { useAuth, UserButton } from "@clerk/nextjs";
 import {
   getCart,
   addToCart as addToCartAction,
@@ -19,7 +19,10 @@ import {
   Loader2,
   ShoppingCart,
   Package,
+  ShieldCheck,
 } from "lucide-react";
+
+const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
 
 type SupplierDTO = {
   id: string;
@@ -63,6 +66,7 @@ const MIN_SEARCH_LENGTH = 3;
 const SEARCH_LIMIT = 100;
 
 export default function MarketplaceDashboard() {
+  const { userId } = useAuth();
   const [products, setProducts] = useState<MasterProductDTO[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -250,6 +254,16 @@ export default function MarketplaceDashboard() {
                 </span>
               )}
             </button>
+            {userId === ADMIN_USER_ID && (
+              <Link
+                href="/admin/dashboard"
+                className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200"
+                title="Διαχείριση (Admin)"
+              >
+                <ShieldCheck className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">Διαχείριση</span>
+              </Link>
+            )}
             <UserButton
               appearance={{
                 elements: {
