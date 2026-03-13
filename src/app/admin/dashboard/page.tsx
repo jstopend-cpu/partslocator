@@ -235,7 +235,7 @@ export default function AdminDashboardPage() {
                       borderRadius: "8px",
                     }}
                     labelStyle={{ color: "#e2e8f0" }}
-                    formatter={(value: number) => [formatCurrency(value), "Έσοδα"]}
+                    formatter={(value: any) => [formatCurrency(Number(value) || 0), "Έσοδα"]}
                     labelFormatter={(label) => label}
                   />
                   <Bar
