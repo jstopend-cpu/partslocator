@@ -14,11 +14,7 @@ import { createOrder as createOrderAction } from "@/app/actions/orders";
 import {
   LayoutDashboard,
   Search,
-  Hash,
-  Building2,
-  ClipboardList,
   ChevronDown,
-  Upload,
   X,
   Loader2,
   ShoppingCart,
@@ -73,9 +69,6 @@ export default function MarketplaceDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [uploadingMaster, setUploadingMaster] = useState(false);
-  const [uploadingSupplier, setUploadingSupplier] = useState(false);
-  const [supplierName, setSupplierName] = useState("");
   const [cart, setCart] = useState<CartItemRow[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
@@ -175,98 +168,8 @@ export default function MarketplaceDashboard() {
     alert("Η παραγγελία σου υποβλήθηκε με επιτυχία. Θα επικοινωνήσουμε σύντομα.");
   };
 
-  const stats = [
-    {
-      label: "Συνολικά Κωδικοί",
-      value: isLoading ? "—" : (hasSearched ? products.length : "—").toString(),
-      icon: Hash,
-    },
-    {
-      label: "Προμηθευτές",
-      value:
-        isLoading || !hasSearched
-          ? "—"
-          : new Set(
-              products.flatMap((p) => p.stocks.map((s) => s.supplier.name)),
-            ).size.toString(),
-      icon: Building2,
-    },
-    {
-      label: "Εγγραφές Αποθέματος",
-      value:
-        isLoading || !hasSearched
-          ? "—"
-          : products.reduce((acc, p) => acc + p.stocks.length, 0).toString(),
-      icon: ClipboardList,
-    },
-  ];
-
   const handleToggleRow = (id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const handleUploadMaster = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      setUploadingMaster(true);
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/import-master", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Αποτυχία ενημέρωσης τιμοκαταλόγου.");
-      }
-      alert(`Ενημερώθηκαν ${data.count} κωδικοί από τον τιμοκατάλογο.`);
-      if (searchTerm.trim().length >= MIN_SEARCH_LENGTH) await handleSearch();
-    } catch (err) {
-      console.error(err);
-      alert("Αποτυχία ενημέρωσης τιμοκαταλόγου.");
-    } finally {
-      setUploadingMaster(false);
-      e.target.value = "";
-    }
-  };
-
-  const handleUploadSupplier = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!supplierName.trim()) {
-      alert("Συμπλήρωσε όνομα προμηθευτή πριν την εισαγωγή.");
-      e.target.value = "";
-      return;
-    }
-    try {
-      setUploadingSupplier(true);
-      const formData = new FormData();
-      formData.append("supplierName", supplierName.trim());
-      formData.append("file", file);
-      const res = await fetch("/api/import-supplier", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Αποτυχία ενημέρωσης αποθέματος.");
-      }
-      alert(
-        `Ενημερώθηκαν ${data.count} εγγραφές αποθέματος για τον προμηθευτή ${data.supplierName}.`,
-      );
-      if (searchTerm.trim().length >= MIN_SEARCH_LENGTH) await handleSearch();
-    } catch (err) {
-      console.error(err);
-      alert("Αποτυχία ενημέρωσης αποθέματος προμηθευτή.");
-    } finally {
-      setUploadingSupplier(false);
-      e.target.value = "";
-    }
   };
 
   return (
@@ -333,58 +236,6 @@ export default function MarketplaceDashboard() {
             </button>
           </form>
 
-          {/* Upload cards */}
-          <div className="flex flex-1 flex-wrap items-stretch gap-3">
-            <label className="flex cursor-pointer flex-1 min-w-[220px] items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-xs text-slate-200 hover:border-blue-500/60 hover:bg-slate-900 transition-colors">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-blue-500/15 text-blue-400">
-                <Upload className="h-4 w-4" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[11px] uppercase tracking-wide text-slate-500">
-                  Ενημέρωση Τιμοκαταλόγου
-                </span>
-                <span className="text-sm font-medium">
-                  Φόρτωσε XML Master Catalog
-                </span>
-              </div>
-              <input
-                type="file"
-                accept=".xml"
-                className="hidden"
-                onChange={handleUploadMaster}
-                disabled={uploadingMaster}
-              />
-            </label>
-
-            <div className="flex flex-1 min-w-[260px] items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-300">
-                <Upload className="h-4 w-4" />
-              </div>
-              <div className="flex flex-1 flex-col gap-1">
-                <span className="text-[11px] uppercase tracking-wide text-slate-500">
-                  Ενημέρωση Αποθέματος Προμηθευτή
-                </span>
-                <input
-                  type="text"
-                  placeholder="Όνομα προμηθευτή (π.χ. Volvo Dealer)"
-                  value={supplierName}
-                  onChange={(e) => setSupplierName(e.target.value)}
-                  className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500"
-                />
-              </div>
-              <label className="inline-flex cursor-pointer items-center rounded-md border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/25">
-                Επιλογή XML
-                <input
-                  type="file"
-                  accept=".xml"
-                  className="hidden"
-                  onChange={handleUploadSupplier}
-                  disabled={uploadingSupplier}
-                />
-              </label>
-            </div>
-          </div>
-
           <div className="ml-auto flex items-center gap-3">
             <button
               type="button"
@@ -411,27 +262,7 @@ export default function MarketplaceDashboard() {
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto p-6">
-          {/* Stats */}
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-xl border border-slate-800 bg-slate-900/90 p-5 transition-colors hover:border-blue-500/40"
-              >
-                <p className="mb-2 text-sm text-slate-500">{stat.label}</p>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/15 text-blue-400">
-                    <stat.icon className="h-5 w-5" />
-                  </div>
-                  <span className="text-2xl font-semibold text-white">
-                    {stat.value}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Main table */}
+          {/* Parts table */}
           <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/90">
             <div className="border-b border-slate-800 px-6 py-4">
               <h2 className="text-lg font-semibold text-slate-100">

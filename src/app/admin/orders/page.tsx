@@ -1,17 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
-import { ArrowLeft, Download, Loader2 } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import {
   getAllOrdersAdmin,
   updateOrderStatus,
   type AdminOrderRow,
 } from "@/app/actions/orders";
-
-const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
 
 const STATUS_OPTIONS = [
   { value: "PENDING", label: "Σε αναμονή" },
@@ -64,8 +59,6 @@ function exportToCsv(orders: AdminOrderRow[]) {
 }
 
 export default function AdminOrdersPage() {
-  const router = useRouter();
-  const { userId, isLoaded } = useAuth();
   const [orders, setOrders] = useState<AdminOrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -78,13 +71,8 @@ export default function AdminOrdersPage() {
   }, []);
 
   useEffect(() => {
-    if (!isLoaded) return;
-    if (userId !== ADMIN_USER_ID) {
-      router.replace("/");
-      return;
-    }
     refresh();
-  }, [isLoaded, userId, router, refresh]);
+  }, [refresh]);
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setUpdatingId(orderId);
@@ -97,27 +85,10 @@ export default function AdminOrdersPage() {
     await refresh();
   };
 
-  if (!isLoaded || (isLoaded && userId !== ADMIN_USER_ID)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <>
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-800 bg-slate-950/98 px-6 py-4">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/"
-            className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 transition-colors hover:border-blue-500/50 hover:text-blue-300"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Πίσω
-          </Link>
-          <h1 className="text-xl font-semibold">Διαχείριση παραγγελιών (Admin)</h1>
-        </div>
+        <h1 className="text-xl font-semibold">Διαχείριση παραγγελιών</h1>
         <button
           type="button"
           onClick={() => exportToCsv(orders)}
@@ -197,6 +168,6 @@ export default function AdminOrdersPage() {
           )}
         </div>
       </main>
-    </div>
+    </>
   );
 }

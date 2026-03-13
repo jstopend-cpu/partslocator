@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { Parser } from "xml2js";
 import prisma from "@/database/client";
+
+const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -72,6 +75,10 @@ function sanitizeXml(xml: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (userId !== ADMIN_USER_ID) {
+      return Response.json({ error: "Μη εξουσιοδοτημένο." }, { status: 403 });
+    }
     const contentType = request.headers.get("content-type") ?? "";
     let xmlText = "";
 
