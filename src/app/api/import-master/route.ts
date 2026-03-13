@@ -71,6 +71,17 @@ function extractItems(root: any): MasterXmlItem[] {
   return items;
 }
 
+/**
+ * Sanitize XML string: replace bare & with &amp; so they don't break parsing.
+ * Leaves existing entities (e.g. &amp;, &lt;, &gt;, &quot;, &apos;, &#123;, &#x7B;) unchanged.
+ */
+function sanitizeXml(xml: string): string {
+  return xml.replace(
+    /&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-fA-F]+;)/g,
+    "&amp;",
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
     const contentType = request.headers.get("content-type") ?? "";
@@ -98,7 +109,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const parsed: any = await parser.parseStringPromise(xmlText);
+    const sanitized = sanitizeXml(xmlText);
+
+    let parsed: any;
+    try {
+      parsed = await parser.parseStringPromise(sanitized);
+    } catch (parseError) {
+      console.error("[import-master] XML parse error:", parseError);
+      if (parseError instanceof Error) {
+        console.error("[import-master] message:", parseError.message);
+        console.error("[import-master] stack:", parseError.stack);
+      }
+      const message =
+        parseError instanceof Error ? parseError.message : "XML parse failed";
+      return Response.json({ error: message }, { status: 400 });
+    }
     const rawItems = extractItems(parsed);
 
     let processed = 0;
