@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import { UserButton } from "@clerk/nextjs";
 import {
   LayoutDashboard,
   Search,
@@ -11,6 +12,7 @@ import {
   Upload,
   X,
   Loader2,
+  ShoppingCart,
 } from "lucide-react";
 
 type SupplierDTO = {
@@ -35,6 +37,14 @@ type MasterProductDTO = {
   officialMsrp: number;
   updatedAt: string;
   stocks: SupplierStockDTO[];
+};
+
+type CartItem = {
+  productId: string;
+  partNumber: string;
+  name: string;
+  officialMsrp: number;
+  quantity: number;
 };
 
 const NAV_ITEMS = [
@@ -62,6 +72,8 @@ export default function MarketplaceDashboard() {
   const [uploadingMaster, setUploadingMaster] = useState(false);
   const [uploadingSupplier, setUploadingSupplier] = useState(false);
   const [supplierName, setSupplierName] = useState("");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
 
   const handleSearch = useCallback(async () => {
     const query = searchTerm.trim();
@@ -93,6 +105,59 @@ export default function MarketplaceDashboard() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleSearch();
+  };
+
+  const addToCart = (product: MasterProductDTO) => {
+    const msrp = product.officialMsrp ?? 0;
+    setCart((prev) => {
+      const existing = prev.find((i) => i.productId === product.id);
+      if (existing) {
+        return prev.map((i) =>
+          i.productId === product.id
+            ? { ...i, quantity: i.quantity + 1 }
+            : i,
+        );
+      }
+      return [
+        ...prev,
+        {
+          productId: product.id,
+          partNumber: product.partNumber,
+          name: product.name,
+          officialMsrp: msrp,
+          quantity: 1,
+        },
+      ];
+    });
+    setCartOpen(true);
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart((prev) => prev.filter((i) => i.productId !== productId));
+  };
+
+  const updateCartQuantity = (productId: string, delta: number) => {
+    setCart((prev) =>
+      prev
+        .map((i) =>
+          i.productId === productId
+            ? { ...i, quantity: Math.max(0, i.quantity + delta) }
+            : i,
+        )
+        .filter((i) => i.quantity > 0),
+    );
+  };
+
+  const cartTotalWithVat = cart.reduce(
+    (sum, i) => sum + i.officialMsrp * 1.24 * i.quantity,
+    0,
+  );
+
+  const handleSubmitOrder = () => {
+    if (cart.length === 0) return;
+    setCart([]);
+    setCartOpen(false);
+    alert("Η παραγγελία σου υποβλήθηκε με επιτυχία. Θα επικοινωνήσουμε σύντομα.");
   };
 
   const stats = [
@@ -304,6 +369,29 @@ export default function MarketplaceDashboard() {
               </label>
             </div>
           </div>
+
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setCartOpen(true)}
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 hover:border-blue-500 hover:text-blue-300"
+              aria-label="Άνοιγμα καλαθιού"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              {cart.length > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-semibold text-white">
+                  {cart.reduce((s, i) => s + i.quantity, 0)}
+                </span>
+              )}
+            </button>
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: "h-9 w-9",
+                },
+              }}
+            />
+          </div>
         </header>
 
         {/* Content */}
@@ -363,6 +451,7 @@ export default function MarketplaceDashboard() {
                       <th className="px-6 py-3">Brand</th>
                       <th className="px-6 py-3">Τιμή (Χωρίς ΦΠΑ)</th>
                       <th className="px-6 py-3">Τιμή (με ΦΠΑ 24%)</th>
+                      <th className="px-6 py-3 w-20"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -425,11 +514,23 @@ export default function MarketplaceDashboard() {
                                 ? "—"
                                 : formatCurrency(msrp * 1.24)}
                             </td>
+                            <td className="px-4 py-3 align-top">
+                              <button
+                                type="button"
+                                onClick={() => addToCart(product)}
+                                disabled={msrp == null || msrp === 0}
+                                className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:border-amber-500/60 hover:bg-amber-500/10 hover:text-amber-400 disabled:pointer-events-none disabled:opacity-50"
+                                aria-label="Προσθήκη στο καλάθι"
+                                title="Προσθήκη στο καλάθι"
+                              >
+                                <ShoppingCart className="h-4 w-4" />
+                              </button>
+                            </td>
                           </tr>
 
                           {isExpanded && (
                             <tr className="border-b border-slate-800/80 bg-slate-950/80">
-                              <td colSpan={6} className="px-10 pb-4 pt-0">
+                              <td colSpan={7} className="px-10 pb-4 pt-0">
                                 {stocks.length === 0 ? (
                                   <div className="py-3 text-xs text-slate-500">
                                     Δεν υπάρχουν ακόμα εγγραφές αποθέματος από
@@ -508,6 +609,108 @@ export default function MarketplaceDashboard() {
           </div>
         </main>
       </div>
+
+      {/* Cart drawer */}
+      {cartOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-slate-950/60"
+            aria-hidden
+            onClick={() => setCartOpen(false)}
+          />
+          <aside
+            className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-slate-800 bg-slate-900 shadow-xl"
+            aria-label="Καλάθι"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+              <h2 className="text-lg font-semibold text-slate-100">
+                Καλάθι ({cart.reduce((s, i) => s + i.quantity, 0)} προϊόντα)
+              </h2>
+              <button
+                type="button"
+                onClick={() => setCartOpen(false)}
+                className="rounded p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                aria-label="Κλείσιμο"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {cart.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  Το καλάθι είναι άδειο. Πρόσθεσε ανταλλακτικά από τον πίνακα.
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {cart.map((item) => (
+                    <li
+                      key={item.productId}
+                      className="flex items-start justify-between gap-2 rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-sm"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono text-xs text-blue-300">
+                          {item.partNumber}
+                        </p>
+                        <p className="truncate text-slate-200">{item.name}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {formatCurrency(item.officialMsrp * 1.24)} × {item.quantity} ={" "}
+                          {formatCurrency(item.officialMsrp * 1.24 * item.quantity)}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => updateCartQuantity(item.productId, -1)}
+                          className="flex h-7 w-7 items-center justify-center rounded border border-slate-600 text-slate-400 hover:bg-slate-700 hover:text-slate-200"
+                          aria-label="Μείωση ποσότητας"
+                        >
+                          −
+                        </button>
+                        <span className="w-6 text-center text-slate-200">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => updateCartQuantity(item.productId, 1)}
+                          className="flex h-7 w-7 items-center justify-center rounded border border-slate-600 text-slate-400 hover:bg-slate-700 hover:text-slate-200"
+                          aria-label="Αύξηση ποσότητας"
+                        >
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(item.productId)}
+                          className="ml-1 rounded p-1 text-slate-500 hover:bg-red-500/20 hover:text-red-400"
+                          aria-label="Αφαίρεση"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {cart.length > 0 && (
+              <div className="border-t border-slate-800 p-4">
+                <div className="mb-3 flex items-center justify-between text-sm">
+                  <span className="text-slate-500">Σύνολο (με ΦΠΑ 24%)</span>
+                  <span className="text-lg font-semibold text-slate-100">
+                    {formatCurrency(cartTotalWithVat)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSubmitOrder}
+                  className="w-full rounded-lg bg-blue-600 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+                >
+                  Υποβολή παραγγελίας
+                </button>
+              </div>
+            )}
+          </aside>
+        </>
+      )}
     </div>
   );
 }

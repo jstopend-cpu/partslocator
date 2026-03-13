@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -19,13 +20,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="el" className="dark">
-      <body
-        className={`${dmSans.variable} min-h-screen bg-slate-950 text-slate-100 font-sans antialiased`}
-        style={{ margin: 0 }}
-      >
-        {children}
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="el" className="dark">
+        <body
+          className={`${dmSans.variable} min-h-screen bg-slate-950 text-slate-100 font-sans antialiased`}
+          style={{ margin: 0 }}
+        >
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
