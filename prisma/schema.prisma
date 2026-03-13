@@ -83,3 +83,13 @@ model SupplierStock {
 
   @@unique([masterProductId, supplierId])
 }
+
+model UpdateLog {
+  id        String   @id @default(cuid())
+  userId    String   // Clerk user id
+  userName  String   // Display name at time of update
+  brand     String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

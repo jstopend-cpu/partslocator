@@ -1,8 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Upload, Loader2, Package, Building2 } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Upload, Loader2, Package, Building2, History } from "lucide-react";
 import { getInventoryStats } from "@/app/actions/orders";
+import { getLatestUpdateLog, type LatestUpdateLog } from "@/app/actions/update-log";
+
+const MASTER_BRANDS = ["VW", "AUDI", "SEAT", "SKODA"] as const;
 
 export default function AdminInventoryPage() {
   const [stats, setStats] = useState<{ totalParts: number; totalSuppliers: number } | null>(null);
@@ -10,6 +13,9 @@ export default function AdminInventoryPage() {
   const [uploadingMaster, setUploadingMaster] = useState(false);
   const [uploadingSupplier, setUploadingSupplier] = useState(false);
   const [supplierName, setSupplierName] = useState("");
+  const [masterBrand, setMasterBrand] = useState<string>("");
+  const [latestUpdate, setLatestUpdate] = useState<LatestUpdateLog>(null);
+  const isBrandSelected = !!masterBrand.trim();
 
   useEffect(() => {
     getInventoryStats().then((data) => {
@@ -17,6 +23,19 @@ export default function AdminInventoryPage() {
       setLoading(false);
     });
   }, []);
+
+  const fetchLatestUpdate = useCallback(async (brand: string) => {
+    if (!brand.trim()) {
+      setLatestUpdate(null);
+      return;
+    }
+    const result = await getLatestUpdateLog(brand);
+    setLatestUpdate(result);
+  }, []);
+
+  useEffect(() => {
+    fetchLatestUpdate(masterBrand);
+  }, [masterBrand, fetchLatestUpdate]);
 
   const refreshStats = () => {
     getInventoryStats().then((data) => {
@@ -28,11 +47,12 @@ export default function AdminInventoryPage() {
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !isBrandSelected) return;
     try {
       setUploadingMaster(true);
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("brand", masterBrand);
       const res = await fetch("/api/import-master", {
         method: "POST",
         body: formData,
@@ -43,6 +63,7 @@ export default function AdminInventoryPage() {
       }
       alert(`Ενημερώθηκαν ${data.count} κωδικοί από τον τιμοκατάλογο.`);
       refreshStats();
+      await fetchLatestUpdate(masterBrand);
     } catch (err) {
       console.error(err);
       alert("Αποτυχία ενημέρωσης τιμοκαταλόγου.");
@@ -140,24 +161,84 @@ export default function AdminInventoryPage() {
             Master Catalog Update
           </h2>
           <p className="mb-4 text-sm text-slate-500">
-            Φόρτωσε XML με κωδικούς, ονόματα και τιμές (ean, name, price).
+            Επίλεξε brand, μετά φόρτωσε XML με κωδικούς, ονόματα και τιμές (ean, name, price).
             Ενημερώνει τον κεντρικό τιμοκατάλογο.
           </p>
-          <label className="flex max-w-md cursor-pointer items-center gap-3 rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-slate-300 transition-colors hover:border-blue-500/50 hover:bg-slate-800 disabled:pointer-events-none disabled:opacity-50">
+
+          {/* Brand: Required Select */}
+          <div className="mb-4 max-w-md">
+            <label htmlFor="master-brand" className="mb-1.5 block text-xs font-medium text-slate-500">
+              Brand <span className="text-amber-500/80">*</span>
+            </label>
+            <select
+              id="master-brand"
+              value={masterBrand}
+              onChange={(e) => setMasterBrand(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2.5 text-sm text-slate-200 transition-colors hover:border-slate-600 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">Επίλεξε brand...</option>
+              {MASTER_BRANDS.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Latest Update Info (for selected brand) */}
+          {isBrandSelected && (
+            <div className="mb-4">
+              {latestUpdate ? (
+                <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700/80 bg-slate-800/50 px-3 py-2 text-xs text-slate-500 shadow-sm">
+                  <History className="h-4 w-4 shrink-0 text-slate-500" />
+                  <span>
+                    Τελευταία ενημέρωση {masterBrand}:{" "}
+                    <span className="text-slate-400">
+                      {new Date(latestUpdate.createdAt).toLocaleString("el-GR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    {" · "}από {latestUpdate.userName}
+                  </span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-xs text-slate-500">
+                  <History className="h-4 w-4 shrink-0 text-slate-500" />
+                  <span>Δεν υπάρχει ακόμα ενημέρωση για {masterBrand}.</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <label
+            className={`flex max-w-md items-center gap-3 rounded-lg border px-4 py-3 text-sm transition-colors ${
+              isBrandSelected && !uploadingMaster
+                ? "cursor-pointer border-slate-700 bg-slate-800/50 text-slate-300 hover:border-blue-500/50 hover:bg-slate-800"
+                : "cursor-not-allowed border-slate-700/80 bg-slate-800/40 text-slate-500 opacity-70"
+            }`}
+          >
             {uploadingMaster ? (
               <Loader2 className="h-5 w-5 shrink-0 animate-spin text-blue-400" />
             ) : (
               <Upload className="h-5 w-5 shrink-0 text-blue-400" />
             )}
             <span>
-              {uploadingMaster ? "Φόρτωση..." : "Επιλογή XML Master Catalog"}
+              {uploadingMaster
+                ? "Φόρτωση..."
+                : !isBrandSelected
+                  ? "Επίλεξε brand για να ανεβάσεις XML"
+                  : "Επιλογή XML Master Catalog"}
             </span>
             <input
               type="file"
               accept=".xml"
               className="hidden"
               onChange={handleUploadMaster}
-              disabled={uploadingMaster}
+              disabled={uploadingMaster || !isBrandSelected}
             />
           </label>
         </section>

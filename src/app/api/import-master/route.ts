@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { Parser } from "xml2js";
 import prisma from "@/database/client";
 
@@ -82,9 +82,15 @@ export async function POST(request: NextRequest) {
     const contentType = request.headers.get("content-type") ?? "";
     let xmlText = "";
 
+    // Extract brand from body (formData) or query
+    let brandFromRequest = "";
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       const file = formData.get("file");
+      const brandParam = formData.get("brand");
+      if (typeof brandParam === "string" && brandParam.trim()) {
+        brandFromRequest = brandParam.trim();
+      }
       if (file && file instanceof File) {
         xmlText = await file.text();
       } else {
@@ -95,6 +101,13 @@ export async function POST(request: NextRequest) {
       }
     } else {
       xmlText = await request.text();
+    }
+
+    if (!brandFromRequest) {
+      return Response.json(
+        { error: "Brand is required. Select a brand (e.g. VW, AUDI, SEAT, SKODA)." },
+        { status: 400 },
+      );
     }
 
     if (!xmlText.trim()) {
@@ -126,9 +139,13 @@ export async function POST(request: NextRequest) {
       const partNumber = toStringField(raw.ean?.[0]);
       if (!partNumber) continue;
       const name = toStringField(raw.name?.[0]) || partNumber;
-      const brand = toStringField(raw.brand?.[0]) || "Volvo";
       const officialMsrp = Number.parseFloat(String(raw.price?.[0] ?? "").replace(",", ".")) || 0;
-      records.push({ partNumber, name, brand, officialMsrp });
+      records.push({
+        partNumber,
+        name,
+        brand: brandFromRequest,
+        officialMsrp,
+      });
     }
 
     let processed = 0;
@@ -145,6 +162,19 @@ export async function POST(request: NextRequest) {
         `[import-master] Chunk ${chunkNum}/${totalChunks}: processed items ${i + 1}-${i + chunk.length} (${chunk.length} items)`,
       );
     }
+
+    // After the import loop, create an UpdateLog record (brand, userId, current date)
+    const user = await currentUser();
+    const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim()
+      || user?.emailAddresses?.[0]?.emailAddress
+      || userId;
+    await prisma.updateLog.create({
+      data: {
+        userId,
+        userName: displayName,
+        brand: brandFromRequest,
+      },
+    });
 
     return Response.json({
       success: true,
