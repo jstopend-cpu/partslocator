@@ -1,7 +1,3 @@
-export const metadata = {
-  title: 'Parts Locator - Management',
-  description: 'Inventory and Order Management',
-}
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { DM_Sans } from "next/font/google";
