@@ -50,11 +50,11 @@ const formatCurrency = (value: number) =>
   }).format(value);
 
 const MIN_SEARCH_LENGTH = 3;
-const SEARCH_LIMIT = 50;
+const SEARCH_LIMIT = 100;
 
 export default function MarketplaceDashboard() {
   const [products, setProducts] = useState<MasterProductDTO[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
@@ -63,11 +63,11 @@ export default function MarketplaceDashboard() {
   const [uploadingSupplier, setUploadingSupplier] = useState(false);
   const [supplierName, setSupplierName] = useState("");
 
-  const runSearch = useCallback(async () => {
+  const handleSearch = useCallback(async () => {
     const query = searchTerm.trim();
     if (query.length < MIN_SEARCH_LENGTH) return;
     try {
-      setLoading(true);
+      setIsLoading(true);
       setError(null);
       const params = new URLSearchParams({ q: query, limit: String(SEARCH_LIMIT) });
       const res = await fetch(`/api/master-products?${params}`, { cache: "no-store" });
@@ -86,25 +86,25 @@ export default function MarketplaceDashboard() {
       setProducts([]);
       setHasSearched(true);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, [searchTerm]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    runSearch();
+    handleSearch();
   };
 
   const stats = [
     {
       label: "Συνολικά Κωδικοί",
-      value: loading ? "—" : (hasSearched ? products.length : "—").toString(),
+      value: isLoading ? "—" : (hasSearched ? products.length : "—").toString(),
       icon: Hash,
     },
     {
       label: "Προμηθευτές",
       value:
-        loading || !hasSearched
+        isLoading || !hasSearched
           ? "—"
           : new Set(
               products.flatMap((p) => p.stocks.map((s) => s.supplier.name)),
@@ -114,7 +114,7 @@ export default function MarketplaceDashboard() {
     {
       label: "Εγγραφές Αποθέματος",
       value:
-        loading || !hasSearched
+        isLoading || !hasSearched
           ? "—"
           : products.reduce((acc, p) => acc + p.stocks.length, 0).toString(),
       icon: ClipboardList,
@@ -143,7 +143,7 @@ export default function MarketplaceDashboard() {
         throw new Error(data.error || "Αποτυχία ενημέρωσης τιμοκαταλόγου.");
       }
       alert(`Ενημερώθηκαν ${data.count} κωδικοί από τον τιμοκατάλογο.`);
-      if (searchTerm.trim().length >= MIN_SEARCH_LENGTH) await runSearch();
+      if (searchTerm.trim().length >= MIN_SEARCH_LENGTH) await handleSearch();
     } catch (err) {
       console.error(err);
       alert("Αποτυχία ενημέρωσης τιμοκαταλόγου.");
@@ -179,7 +179,7 @@ export default function MarketplaceDashboard() {
       alert(
         `Ενημερώθηκαν ${data.count} εγγραφές αποθέματος για τον προμηθευτή ${data.supplierName}.`,
       );
-      if (searchTerm.trim().length >= MIN_SEARCH_LENGTH) await runSearch();
+      if (searchTerm.trim().length >= MIN_SEARCH_LENGTH) await handleSearch();
     } catch (err) {
       console.error(err);
       alert("Αποτυχία ενημέρωσης αποθέματος προμηθευτή.");
@@ -246,7 +246,7 @@ export default function MarketplaceDashboard() {
             </div>
             <button
               type="submit"
-              disabled={searchTerm.trim().length < MIN_SEARCH_LENGTH || loading}
+              disabled={searchTerm.trim().length < MIN_SEARCH_LENGTH || isLoading}
               className="shrink-0 rounded-lg border border-blue-500/50 bg-blue-500/20 px-4 py-2.5 text-sm font-medium text-blue-300 transition-colors hover:bg-blue-500/30 disabled:pointer-events-none disabled:opacity-50"
             >
               Αναζήτηση
@@ -340,7 +340,7 @@ export default function MarketplaceDashboard() {
               </p>
             </div>
             <div className="overflow-x-auto">
-              {loading ? (
+              {isLoading ? (
                 <div className="flex items-center gap-3 p-6 text-sm text-slate-400">
                   <Loader2 className="h-5 w-5 animate-spin shrink-0" />
                   <span>Searching...</span>
