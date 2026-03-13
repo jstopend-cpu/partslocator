@@ -3,106 +3,77 @@
 import React, { useEffect, useState } from "react";
 import {
   LayoutDashboard,
-  Package,
-  Truck,
-  Settings,
   Search,
   Plus,
   Hash,
   Building2,
   ClipboardList,
-  X,
+  ChevronDown,
+  Upload,
 } from "lucide-react";
 
-type Product = {
-  id: number;
+type SupplierDTO = {
+  id: string;
   name: string;
-  ean: string;
-  supplier: string;
-  price: string | number;
-  stock: number;
+  location: string | null;
 };
 
-const BRAND_OPTIONS = ["All", "Volvo"] as const;
-
-const BrandBadge = ({ brand }: { brand: string }) => {
-  const colors: Record<string, string> = {
-    Volvo: "bg-blue-600/20 text-blue-400 border-blue-500/30",
-    Toyota: "bg-red-600/20 text-red-400 border-red-500/30",
-    Audi: "bg-slate-700/50 text-slate-300 border-slate-500/30",
-    BMW: "bg-slate-600/20 text-slate-400 border-slate-500/30",
-    Directed: "bg-violet-600/20 text-violet-300 border-violet-500/30",
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${
-        colors[brand] ?? "bg-slate-700/50 text-slate-400 border-slate-600/50"
-      }`}
-    >
-      {brand}
-    </span>
-  );
+type SupplierStockDTO = {
+  id: string;
+  supplierPrice: number;
+  quantity: number;
+  updatedAt: string;
+  supplier: SupplierDTO;
 };
 
-const StockBadge = ({ stock }: { stock: number }) => {
-  if (stock === 0) {
-    return (
-      <span className="inline-flex items-center rounded-md border border-red-500/40 bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-300">
-        Μη διαθέσιμο
-      </span>
-    );
-  }
-  if (stock >= 1 && stock <= 5) {
-    return (
-      <span className="inline-flex items-center rounded-md border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
-        Χαμηλό · {stock} τμχ
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-300">
-      {stock} τμχ
-    </span>
-  );
+type MasterProductDTO = {
+  id: string;
+  partNumber: string;
+  name: string;
+  brand: string;
+  officialMsrp: number;
+  updatedAt: string;
+  stocks: SupplierStockDTO[];
 };
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: LayoutDashboard, active: true },
-  { label: "Inventory", icon: Package, active: false },
-  { label: "Suppliers", icon: Truck, active: false, brands: ["Volvo"] },
-  { label: "Settings", icon: Settings, active: false },
 ];
 
-export default function PartsLocatorDashboard() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedBrand, setSelectedBrand] = useState<string>("All");
-  const [fixingBrands, setFixingBrands] = useState(false);
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("el-GR", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+
+export default function MarketplaceDashboard() {
+  const [products, setProducts] = useState<MasterProductDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    ean: "",
-    supplier: "",
-    price: "",
-    stock: "",
-  });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [uploadingMaster, setUploadingMaster] = useState(false);
+  const [uploadingSupplier, setUploadingSupplier] = useState(false);
+  const [supplierName, setSupplierName] = useState("");
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-      await fetch("/api/init", { method: "POST" });
-      const res = await fetch("/api/products");
-      if (!res.ok) throw new Error(`Αποτυχία (${res.status})`);
-      const data: Product[] = await res.json();
-      setProducts(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError("Δεν ήταν δυνατή η φόρτωση.");
-      console.error(err);
+      const res = await fetch("/api/master-products", { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(`Αποτυχία φόρτωσης (${res.status})`);
+      }
+      const data = (await res.json()) as MasterProductDTO[] | { error?: string };
+      if (!Array.isArray(data)) {
+        throw new Error((data as any).error || "Μη έγκυρη απάντηση.");
+      }
+      setProducts(data);
+    } catch (e) {
+      console.error(e);
+      setError("Δεν ήταν δυνατή η φόρτωση του τιμοκαταλόγου.");
     } finally {
       setLoading(false);
     }
@@ -112,43 +83,127 @@ export default function PartsLocatorDashboard() {
     fetchProducts();
   }, []);
 
-  const filteredProducts = products.filter((product) => {
-    const search = searchTerm.toLowerCase().trim();
-    const supplier = product.supplier || "Volvo";
-    const matchesSearch =
-      !search ||
-      product.name?.toLowerCase().includes(search) ||
-      product.ean?.toLowerCase().includes(search) ||
-      supplier.toLowerCase().includes(search);
-    const matchesBrand =
-      selectedBrand === "All" || supplier === selectedBrand;
-    return matchesSearch && matchesBrand;
+  const filtered = products.filter((p) => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      p.partNumber.toLowerCase().includes(q) ||
+      p.name.toLowerCase().includes(q) ||
+      p.brand.toLowerCase().includes(q)
+    );
   });
 
   const stats = [
-    { label: "Συνολικά Ανταλλακτικά", value: loading ? "—" : products.length.toString(), icon: Hash },
-    { label: "Συνδεδεμένοι Προμηθευτές", value: loading ? "—" : new Set(products.map(p => p.supplier)).size.toString(), icon: Building2 },
-    { label: "Εκκρεμείς Παραγγελίες", value: "7", icon: ClipboardList },
+    {
+      label: "Συνολικά Κωδικοί",
+      value: loading ? "—" : products.length.toString(),
+      icon: Hash,
+    },
+    {
+      label: "Προμηθευτές",
+      value: loading
+        ? "—"
+        : new Set(
+            products.flatMap((p) => p.stocks.map((s) => s.supplier.name)),
+          ).size.toString(),
+      icon: Building2,
+    },
+    {
+      label: "Εγγραφές Αποθέματος",
+      value: loading
+        ? "—"
+        : products.reduce((acc, p) => acc + p.stocks.length, 0).toString(),
+      icon: ClipboardList,
+    },
   ];
 
-  const formatPrice = (price: string | number) => {
-    const numeric = typeof price === "number" ? price : parseFloat(price);
-    if (isNaN(numeric)) return price;
-    return new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(numeric);
+  const handleToggleRow = (id: string) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleUploadMaster = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingMaster(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/import-master", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Αποτυχία ενημέρωσης τιμοκαταλόγου.");
+      }
+      alert(`Ενημερώθηκαν ${data.count} κωδικοί από τον τιμοκατάλογο.`);
+      await fetchProducts();
+    } catch (err) {
+      console.error(err);
+      alert("Αποτυχία ενημέρωσης τιμοκαταλόγου.");
+    } finally {
+      setUploadingMaster(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleUploadSupplier = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!supplierName.trim()) {
+      alert("Συμπλήρωσε όνομα προμηθευτή πριν την εισαγωγή.");
+      e.target.value = "";
+      return;
+    }
+    try {
+      setUploadingSupplier(true);
+      const formData = new FormData();
+      formData.append("supplierName", supplierName.trim());
+      formData.append("file", file);
+      const res = await fetch("/api/import-supplier", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Αποτυχία ενημέρωσης αποθέματος.");
+      }
+      alert(
+        `Ενημερώθηκαν ${data.count} εγγραφές αποθέματος για τον προμηθευτή ${data.supplierName}.`,
+      );
+      await fetchProducts();
+    } catch (err) {
+      console.error(err);
+      alert("Αποτυχία ενημέρωσης αποθέματος προμηθευτή.");
+    } finally {
+      setUploadingSupplier(false);
+      e.target.value = "";
+    }
   };
 
   return (
-    <div className="flex h-screen w-full bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className="flex h-screen w-full overflow-hidden bg-slate-950 font-sans text-slate-100">
       {/* Sidebar */}
-      <aside className="w-64 shrink-0 border-r border-slate-800 bg-slate-900/95 flex flex-col">
-        <div className="p-6 border-b border-slate-800">
-          <h1 className="text-xl font-semibold">Parts Locator</h1>
-          <p className="text-xs text-slate-500">B2B Dashboard</p>
+      <aside className="flex w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-900/95">
+        <div className="border-b border-slate-800 p-6">
+          <h1 className="text-xl font-semibold">Parts Marketplace</h1>
+          <p className="text-xs text-slate-500">Master Catalog & Suppliers</p>
         </div>
-        <nav className="p-4 space-y-1 overflow-y-auto flex-1">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-4">
           {NAV_ITEMS.map((item) => (
             <div key={item.label}>
-              <a href="#" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${item.active ? "bg-blue-500/15 text-blue-400 border border-blue-500/30" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}>
+              <a
+                href="#"
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                  item.active
+                    ? "border border-blue-500/30 bg-blue-500/15 text-blue-400"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                }`}
+              >
                 <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>
               </a>
@@ -157,148 +212,265 @@ export default function PartsLocatorDashboard() {
         </nav>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="flex flex-wrap items-center gap-4 px-6 py-4 border-b border-slate-800 bg-slate-950/98 shrink-0">
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500 pointer-events-none" />
+      {/* Main */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Header / Filters / Uploaders */}
+        <header className="flex flex-wrap items-center gap-4 border-b border-slate-800 bg-slate-950/98 px-6 py-4">
+          <div className="relative flex min-w-[220px] flex-1 max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
-              placeholder="Αναζήτηση ανταλλακτικών, SKU..."
+              placeholder="Αναζήτηση με κωδικό, περιγραφή ή brand..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-10 py-2.5 text-slate-100 focus:border-blue-500 outline-none transition-all"
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 pl-10 pr-10 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition-all focus:border-blue-500"
             />
-            {searchTerm.length > 0 && (
+            {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700/80 transition-colors"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:bg-slate-700/80 hover:text-slate-200"
                 aria-label="Καθαρισμός αναζήτησης"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-slate-500 mr-1">Brand:</span>
-            {BRAND_OPTIONS.map((brand) => (
-              <button
-                key={brand}
-                type="button"
-                onClick={() => setSelectedBrand(brand)}
-                className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-all ${
-                  selectedBrand === brand
-                    ? "border-blue-500/50 bg-blue-500/20 text-blue-300"
-                    : "border-slate-700 bg-slate-800/80 text-slate-400 hover:border-slate-600 hover:text-slate-200"
-                }`}
-              >
-                {brand}
-              </button>
-            ))}
+
+          {/* Upload cards */}
+          <div className="flex flex-1 flex-wrap items-stretch gap-3">
+            <label className="flex cursor-pointer flex-1 min-w-[220px] items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-xs text-slate-200 hover:border-blue-500/60 hover:bg-slate-900 transition-colors">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-blue-500/15 text-blue-400">
+                <Upload className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[11px] uppercase tracking-wide text-slate-500">
+                  Ενημέρωση Τιμοκαταλόγου
+                </span>
+                <span className="text-sm font-medium">
+                  Φόρτωσε XML Master Catalog
+                </span>
+              </div>
+              <input
+                type="file"
+                accept=".xml"
+                className="hidden"
+                onChange={handleUploadMaster}
+                disabled={uploadingMaster}
+              />
+            </label>
+
+            <div className="flex flex-1 min-w-[260px] items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-300">
+                <Upload className="h-4 w-4" />
+              </div>
+              <div className="flex flex-1 flex-col gap-1">
+                <span className="text-[11px] uppercase tracking-wide text-slate-500">
+                  Ενημέρωση Αποθέματος Προμηθευτή
+                </span>
+                <input
+                  type="text"
+                  placeholder="Όνομα προμηθευτή (π.χ. Volvo Dealer)"
+                  value={supplierName}
+                  onChange={(e) => setSupplierName(e.target.value)}
+                  className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500"
+                />
+              </div>
+              <label className="inline-flex cursor-pointer items-center rounded-md border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/25">
+                Επιλογή XML
+                <input
+                  type="file"
+                  accept=".xml"
+                  className="hidden"
+                  onChange={handleUploadSupplier}
+                  disabled={uploadingSupplier}
+                />
+              </label>
+            </div>
           </div>
-          <button
-            type="button"
-            disabled={fixingBrands}
-            onClick={async () => {
-              setFixingBrands(true);
-              try {
-                const res = await fetch("/api/fix-brands");
-                const data = await res.json();
-                if (data.success) {
-                  alert(`Ορίστηκαν ${data.updated} προϊόντα σε Volvo.`);
-                  fetchProducts();
-                } else {
-                  alert(data.error || "Σφάλμα");
-                }
-              } catch (e) {
-                alert("Σφάλμα δικτύου");
-              } finally {
-                setFixingBrands(false);
-              }
-            }}
-            className="rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs font-medium text-amber-300 hover:bg-amber-500/25 disabled:opacity-50"
-          >
-            {fixingBrands ? "Περιμένετε..." : "Ορισμός όλων σε Volvo"}
-          </button>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg font-medium flex items-center gap-2"
-          >
-            <Plus className="h-5 w-5" /> + Προσθήκη
-          </button>
-          
-          <label htmlFor="xml-upload" className="cursor-pointer bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-4 rounded-lg flex items-center gap-2">
-             <Plus className="h-5 w-5" /> Εισαγωγή XML
-          </label>
-          <input 
-            type="file" id="xml-upload" className="hidden" accept=".xml" 
-            onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const formData = new FormData();
-                formData.append('file', file);
-                const res = await fetch('/api/import-xml', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.success) { alert(`Εισήχθησαν ${data.count} προϊόντα`); fetchProducts(); }
-                else alert('Σφάλμα: ' + data.error);
-            }}
-          />
         </header>
 
+        {/* Content */}
         <main className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          {/* Stats */}
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
             {stats.map((stat) => (
-              <div key={stat.label} className="bg-slate-900/90 border border-slate-800 p-6 rounded-xl hover:border-blue-500/40 transition-all">
-                <p className="text-sm text-slate-500 mb-2">{stat.label}</p>
+              <div
+                key={stat.label}
+                className="rounded-xl border border-slate-800 bg-slate-900/90 p-5 transition-colors hover:border-blue-500/40"
+              >
+                <p className="mb-2 text-sm text-slate-500">{stat.label}</p>
                 <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 bg-blue-500/15 border border-blue-500/25 rounded-lg flex items-center justify-center text-blue-400">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/15 text-blue-400">
                     <stat.icon className="h-5 w-5" />
                   </div>
-                  <span className="text-2xl font-semibold text-white">{stat.value}</span>
+                  <span className="text-2xl font-semibold text-white">
+                    {stat.value}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-800">
-              <h2 className="text-lg font-semibold text-slate-100">Ανταλλακτικά</h2>
+          {/* Main table */}
+          <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/90">
+            <div className="border-b border-slate-800 px-6 py-4">
+              <h2 className="text-lg font-semibold text-slate-100">
+                Master Price List
+              </h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Κωδικοί, περιγραφές, επίσημη τιμή καταλόγου (MSRP) και
+                διαθέσιμοι προμηθευτές.
+              </p>
             </div>
             <div className="overflow-x-auto">
               {loading ? (
-                <p className="p-6 text-slate-400">Φόρτωση...</p>
+                <p className="p-6 text-sm text-slate-400">Φόρτωση...</p>
               ) : error ? (
-                <p className="p-6 text-red-400">{error}</p>
+                <p className="p-6 text-sm text-red-400">{error}</p>
+              ) : filtered.length === 0 ? (
+                <p className="p-6 text-sm text-slate-400">
+                  Δεν βρέθηκαν προϊόντα για τα κριτήρια αναζήτησης.
+                </p>
               ) : (
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-800 text-left text-slate-400">
-                      <th className="px-6 py-3">Όνομα</th>
-                      <th className="px-6 py-3">EAN / SKU</th>
-                      <th className="px-6 py-3">Προμηθευτής</th>
-                      <th className="px-6 py-3">Τιμή</th>
-                      <th className="px-6 py-3">Απόθεμα</th>
+                    <tr className="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-500">
+                      <th className="px-6 py-3"></th>
+                      <th className="px-6 py-3">Κωδικός</th>
+                      <th className="px-6 py-3">Περιγραφή</th>
+                      <th className="px-6 py-3">Brand</th>
+                      <th className="px-6 py-3">Επίσημη Τιμή (MSRP)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {Array.isArray(filteredProducts) &&
-                      filteredProducts.map((product) => (
-                        <tr
-                          key={product.id}
-                          className="border-b border-slate-800/80 hover:bg-slate-800/50 transition-all duration-200"
-                        >
-                          <td className="px-6 py-3 text-slate-200">{product.name}</td>
-                          <td className="px-6 py-3 font-mono text-slate-400">{product.ean}</td>
-                          <td className="px-6 py-3">
-                            <BrandBadge brand={product.supplier || "Volvo"} />
-                          </td>
-                          <td className="px-6 py-3 text-slate-200">{formatPrice(product.price)}</td>
-                          <td className="px-6 py-3">
-                            <StockBadge stock={product.stock} />
-                          </td>
-                        </tr>
-                      ))}
+                    {filtered.map((product) => {
+                      const isExpanded = !!expanded[product.id];
+                      const stocks = product.stocks || [];
+                      const msrp = product.officialMsrp ?? 0;
+                      const minOffer =
+                        stocks.length > 0
+                          ? Math.min(
+                              ...stocks.map((s) => s.supplierPrice ?? Infinity),
+                            )
+                          : undefined;
+
+                      return (
+                        <React.Fragment key={product.id}>
+                          <tr className="border-b border-slate-800/80 bg-slate-900/80 hover:bg-slate-800/70 transition-colors">
+                            <td className="px-4 py-3 align-top">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleRow(product.id)}
+                                className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:border-blue-500 hover:text-blue-300"
+                                aria-label={
+                                  isExpanded
+                                    ? "Απόκρυψη προμηθευτών"
+                                    : "Εμφάνιση προμηθευτών"
+                                }
+                              >
+                                <ChevronDown
+                                  className={`h-4 w-4 transition-transform ${
+                                    isExpanded ? "rotate-180" : ""
+                                  }`}
+                                />
+                              </button>
+                            </td>
+                            <td className="px-6 py-3 align-top font-mono text-xs text-blue-300">
+                              {product.partNumber}
+                            </td>
+                            <td className="px-6 py-3 align-top text-slate-100">
+                              {product.name}
+                            </td>
+                            <td className="px-6 py-3 align-top text-xs text-slate-400">
+                              {product.brand}
+                            </td>
+                            <td className="px-6 py-3 align-top text-slate-100">
+                              {formatCurrency(msrp)}
+                              {minOffer !== undefined &&
+                                Number.isFinite(minOffer) &&
+                                minOffer < msrp && (
+                                  <span className="ml-2 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
+                                    Καλύτερη: {formatCurrency(minOffer)}
+                                  </span>
+                                )}
+                            </td>
+                          </tr>
+
+                          {isExpanded && (
+                            <tr className="border-b border-slate-800/80 bg-slate-950/80">
+                              <td colSpan={5} className="px-10 pb-4 pt-0">
+                                {stocks.length === 0 ? (
+                                  <div className="py-3 text-xs text-slate-500">
+                                    Δεν υπάρχουν ακόμα εγγραφές αποθέματος από
+                                    προμηθευτές για αυτόν τον κωδικό.
+                                  </div>
+                                ) : (
+                                  <table className="mt-2 w-full text-xs">
+                                    <thead>
+                                      <tr className="border-b border-slate-800 text-left text-[11px] uppercase tracking-wide text-slate-500">
+                                        <th className="px-2 py-2">
+                                          Προμηθευτής
+                                        </th>
+                                        <th className="px-2 py-2">
+                                          Τιμή Προσφοράς
+                                        </th>
+                                        <th className="px-2 py-2">
+                                          Διαθεσιμότητα
+                                        </th>
+                                        <th className="px-2 py-2">
+                                          Τελευταία Ενημέρωση
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {stocks.map((stock) => {
+                                        const isBest =
+                                          Number.isFinite(minOffer) &&
+                                          stock.supplierPrice === minOffer &&
+                                          (minOffer as number) < msrp;
+
+                                        return (
+                                          <tr
+                                            key={stock.id}
+                                            className="border-b border-slate-800/60 last:border-0"
+                                          >
+                                            <td className="px-2 py-2 text-slate-200">
+                                              {stock.supplier?.name || "—"}
+                                            </td>
+                                            <td
+                                              className={`px-2 py-2 ${
+                                                isBest
+                                                  ? "font-semibold text-emerald-300"
+                                                  : "text-slate-200"
+                                              }`}
+                                            >
+                                              {formatCurrency(
+                                                stock.supplierPrice,
+                                              )}
+                                            </td>
+                                            <td className="px-2 py-2 text-slate-200">
+                                              {stock.quantity} τμχ
+                                            </td>
+                                            <td className="px-2 py-2 text-[11px] text-slate-500">
+                                              {stock.updatedAt
+                                                ? new Date(
+                                                    stock.updatedAt,
+                                                  ).toLocaleString("el-GR")
+                                                : "—"}
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
