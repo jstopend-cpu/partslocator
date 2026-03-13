@@ -36,6 +36,33 @@ model CartItem {
   @@index([userId])
 }
 
+model Order {
+  id         String      @id @default(cuid())
+  userId     String      // Clerk user id
+  status     String      @default("PENDING") // e.g. PENDING, CONFIRMED, SHIPPED
+  totalPrice Float       // total with VAT at time of order
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  items OrderItem[]
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id              String   @id @default(cuid())
+  orderId         String
+  masterProductId String
+  partNumber      String
+  description     String
+  price           Float    // unit price at time of order
+  quantity        Int
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
 model Supplier {
   id       String          @id @default(cuid())
   name     String          @unique

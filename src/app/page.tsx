@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import {
   getCart,
   addToCart as addToCartAction,
   removeFromCart as removeFromCartAction,
   updateCartQuantity as updateCartQuantityAction,
-  clearCart as clearCartAction,
   type CartItemRow,
 } from "@/app/actions/cart";
+import { createOrder as createOrderAction } from "@/app/actions/orders";
 import {
   LayoutDashboard,
   Search,
@@ -21,6 +22,7 @@ import {
   X,
   Loader2,
   ShoppingCart,
+  Package,
 } from "lucide-react";
 
 type SupplierDTO = {
@@ -49,7 +51,8 @@ type MasterProductDTO = {
 
 
 const NAV_ITEMS = [
-  { label: "Dashboard", icon: LayoutDashboard, active: true },
+  { label: "Dashboard", icon: LayoutDashboard, href: "/", active: true },
+  { label: "Παραγγελίες", icon: Package, href: "/dashboard/orders", active: false },
 ];
 
 const formatCurrency = (value: number) =>
@@ -162,7 +165,7 @@ export default function MarketplaceDashboard() {
 
   const handleSubmitOrder = async () => {
     if (cart.length === 0) return;
-    const result = await clearCartAction();
+    const result = await createOrderAction();
     if (!result.ok) {
       alert(result.error ?? "Αποτυχία υποβολής.");
       return;
@@ -277,8 +280,8 @@ export default function MarketplaceDashboard() {
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
           {NAV_ITEMS.map((item) => (
             <div key={item.label}>
-              <a
-                href="#"
+              <Link
+                href={item.href}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                   item.active
                     ? "border border-blue-500/30 bg-blue-500/15 text-blue-400"
@@ -287,7 +290,7 @@ export default function MarketplaceDashboard() {
               >
                 <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>
-              </a>
+              </Link>
             </div>
           ))}
         </nav>
