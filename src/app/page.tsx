@@ -1,7 +1,15 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { UserButton } from "@clerk/nextjs";
+import {
+  getCart,
+  addToCart as addToCartAction,
+  removeFromCart as removeFromCartAction,
+  updateCartQuantity as updateCartQuantityAction,
+  clearCart as clearCartAction,
+  type CartItemRow,
+} from "@/app/actions/cart";
 import {
   LayoutDashboard,
   Search,
@@ -39,13 +47,6 @@ type MasterProductDTO = {
   stocks: SupplierStockDTO[];
 };
 
-type CartItem = {
-  productId: string;
-  partNumber: string;
-  name: string;
-  officialMsrp: number;
-  quantity: number;
-};
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: LayoutDashboard, active: true },
@@ -72,8 +73,17 @@ export default function MarketplaceDashboard() {
   const [uploadingMaster, setUploadingMaster] = useState(false);
   const [uploadingSupplier, setUploadingSupplier] = useState(false);
   const [supplierName, setSupplierName] = useState("");
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItemRow[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [cartLoading, setCartLoading] = useState(false);
+
+  const refreshCart = useCallback(() => {
+    return getCart().then(setCart);
+  }, []);
+
+  useEffect(() => {
+    refreshCart();
+  }, [refreshCart]);
 
   const handleSearch = useCallback(async () => {
     const query = searchTerm.trim();
@@ -107,55 +117,57 @@ export default function MarketplaceDashboard() {
     handleSearch();
   };
 
-  const addToCart = (product: MasterProductDTO) => {
+  const addToCart = async (product: MasterProductDTO) => {
     const msrp = product.officialMsrp ?? 0;
-    setCart((prev) => {
-      const existing = prev.find((i) => i.productId === product.id);
-      if (existing) {
-        return prev.map((i) =>
-          i.productId === product.id
-            ? { ...i, quantity: i.quantity + 1 }
-            : i,
-        );
-      }
-      return [
-        ...prev,
-        {
-          productId: product.id,
-          partNumber: product.partNumber,
-          name: product.name,
-          officialMsrp: msrp,
-          quantity: 1,
-        },
-      ];
+    if (msrp == null || msrp === 0) return;
+    setCartLoading(true);
+    const result = await addToCartAction({
+      masterProductId: product.id,
+      partNumber: product.partNumber,
+      price: msrp,
+      brand: product.brand,
+      description: product.name,
     });
+    setCartLoading(false);
+    if (!result.ok) {
+      alert(result.error ?? "Αποτυχία προσθήκης στο καλάθι.");
+      return;
+    }
+    await refreshCart();
     setCartOpen(true);
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart((prev) => prev.filter((i) => i.productId !== productId));
+  const removeFromCart = async (cartItemId: string) => {
+    const result = await removeFromCartAction(cartItemId);
+    if (!result.ok) alert(result.error);
+    else await refreshCart();
   };
 
-  const updateCartQuantity = (productId: string, delta: number) => {
-    setCart((prev) =>
-      prev
-        .map((i) =>
-          i.productId === productId
-            ? { ...i, quantity: Math.max(0, i.quantity + delta) }
-            : i,
-        )
-        .filter((i) => i.quantity > 0),
-    );
+  const updateCartQuantity = async (cartItemId: string, delta: number) => {
+    const item = cart.find((i) => i.id === cartItemId);
+    if (!item) return;
+    const newQty = item.quantity + delta;
+    const result =
+      newQty < 1
+        ? await removeFromCartAction(cartItemId)
+        : await updateCartQuantityAction(cartItemId, newQty);
+    if (!result.ok) alert(result.error);
+    else await refreshCart();
   };
 
   const cartTotalWithVat = cart.reduce(
-    (sum, i) => sum + i.officialMsrp * 1.24 * i.quantity,
+    (sum, i) => sum + i.price * 1.24 * i.quantity,
     0,
   );
 
-  const handleSubmitOrder = () => {
+  const handleSubmitOrder = async () => {
     if (cart.length === 0) return;
-    setCart([]);
+    const result = await clearCartAction();
+    if (!result.ok) {
+      alert(result.error ?? "Αποτυχία υποβολής.");
+      return;
+    }
+    await refreshCart();
     setCartOpen(false);
     alert("Η παραγγελία σου υποβλήθηκε με επιτυχία. Θα επικοινωνήσουμε σύντομα.");
   };
@@ -518,7 +530,7 @@ export default function MarketplaceDashboard() {
                               <button
                                 type="button"
                                 onClick={() => addToCart(product)}
-                                disabled={msrp == null || msrp === 0}
+                                disabled={msrp == null || msrp === 0 || cartLoading}
                                 className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:border-amber-500/60 hover:bg-amber-500/10 hover:text-amber-400 disabled:pointer-events-none disabled:opacity-50"
                                 aria-label="Προσθήκη στο καλάθι"
                                 title="Προσθήκη στο καλάθι"
@@ -644,23 +656,23 @@ export default function MarketplaceDashboard() {
                 <ul className="space-y-3">
                   {cart.map((item) => (
                     <li
-                      key={item.productId}
+                      key={item.id}
                       className="flex items-start justify-between gap-2 rounded-lg border border-slate-800 bg-slate-800/50 p-3 text-sm"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="font-mono text-xs text-blue-300">
                           {item.partNumber}
                         </p>
-                        <p className="truncate text-slate-200">{item.name}</p>
+                        <p className="truncate text-slate-200">{item.description}</p>
                         <p className="mt-1 text-xs text-slate-500">
-                          {formatCurrency(item.officialMsrp * 1.24)} × {item.quantity} ={" "}
-                          {formatCurrency(item.officialMsrp * 1.24 * item.quantity)}
+                          {formatCurrency(item.price * 1.24)} × {item.quantity} ={" "}
+                          {formatCurrency(item.price * 1.24 * item.quantity)}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
                         <button
                           type="button"
-                          onClick={() => updateCartQuantity(item.productId, -1)}
+                          onClick={() => updateCartQuantity(item.id, -1)}
                           className="flex h-7 w-7 items-center justify-center rounded border border-slate-600 text-slate-400 hover:bg-slate-700 hover:text-slate-200"
                           aria-label="Μείωση ποσότητας"
                         >
@@ -671,7 +683,7 @@ export default function MarketplaceDashboard() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => updateCartQuantity(item.productId, 1)}
+                          onClick={() => updateCartQuantity(item.id, 1)}
                           className="flex h-7 w-7 items-center justify-center rounded border border-slate-600 text-slate-400 hover:bg-slate-700 hover:text-slate-200"
                           aria-label="Αύξηση ποσότητας"
                         >
@@ -679,7 +691,7 @@ export default function MarketplaceDashboard() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => removeFromCart(item.productId)}
+                          onClick={() => removeFromCart(item.id)}
                           className="ml-1 rounded p-1 text-slate-500 hover:bg-red-500/20 hover:text-red-400"
                           aria-label="Αφαίρεση"
                         >

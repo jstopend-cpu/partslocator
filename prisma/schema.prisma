@@ -16,6 +16,24 @@ model MasterProduct {
   officialMsrp Float
   updatedAt    DateTime        @updatedAt
   stocks       SupplierStock[]
+  cartItems    CartItem[]
+}
+
+model CartItem {
+  id              String        @id @default(cuid())
+  userId          String        // Clerk user id
+  masterProductId String
+  partNumber      String        // at time of add, for display
+  quantity        Int
+  price           Float         // price at time of add (e.g. officialMsrp)
+  brand           String
+  description     String        // product name at time of add
+  createdAt       DateTime      @default(now())
+
+  masterProduct   MasterProduct @relation(fields: [masterProductId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, masterProductId])
+  @@index([userId])
 }
 
 model Supplier {
