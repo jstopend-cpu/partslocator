@@ -6,23 +6,13 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
-const parser = new Parser({ explicitArray: false, trim: true });
+const parser = new Parser({ explicitArray: true, trim: true });
 
 type SupplierXmlItem = {
-  partNumber?: string;
-  PartNumber?: string;
-  code?: string;
-  Code?: string;
-  sku?: string;
-  SKU?: string;
-  quantity?: string | number;
-  Quantity?: string | number;
-  stock?: string | number;
-  Stock?: string | number;
-  supplierPrice?: string | number;
-  SupplierPrice?: string | number;
-  price?: string | number;
-  Price?: string | number;
+  ean?: string[];
+  name?: string[];
+  price?: string[];
+  quantity?: string[];
 };
 
 function toStringField(v: unknown): string | undefined {
@@ -48,15 +38,10 @@ function extractItems(root: any): SupplierXmlItem[] {
       (node.Item as SupplierXmlItem) ||
       (node as SupplierXmlItem);
 
-    if (
-      maybeItem &&
-      (maybeItem.partNumber ||
-        maybeItem.PartNumber ||
-        maybeItem.code ||
-        maybeItem.Code ||
-        maybeItem.sku ||
-        maybeItem.SKU)
-    ) {
+    const hasEan =
+      maybeItem?.ean != null &&
+      (Array.isArray(maybeItem.ean) ? maybeItem.ean.length > 0 : true);
+    if (maybeItem && hasEan) {
       items.push(maybeItem);
     }
 
@@ -71,6 +56,17 @@ function extractItems(root: any): SupplierXmlItem[] {
 
   visit(root);
   return items;
+}
+
+/**
+ * Sanitize XML string: replace bare & with &amp; so they don't break parsing.
+ * Leaves existing entities (e.g. &amp;, &lt;, &gt;, &quot;, &apos;, &#123;, &#x7B;) unchanged.
+ */
+function sanitizeXml(xml: string): string {
+  return xml.replace(
+    /&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-fA-F]+;)/g,
+    "&amp;",
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -109,7 +105,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const xmlText = await file.text();
+    let xmlText = await file.text();
     if (!xmlText.trim()) {
       return Response.json(
         { error: "Empty XML payload." },
@@ -117,34 +113,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const parsed: any = await parser.parseStringPromise(xmlText);
+    const sanitized = sanitizeXml(xmlText);
+
+    let parsed: any;
+    try {
+      parsed = await parser.parseStringPromise(sanitized);
+    } catch (parseError) {
+      console.error("[import-supplier] XML parse error:", parseError);
+      if (parseError instanceof Error) {
+        console.error("[import-supplier] message:", parseError.message);
+        console.error("[import-supplier] stack:", parseError.stack);
+      }
+      const message =
+        parseError instanceof Error ? parseError.message : "XML parse failed";
+      return Response.json({ error: message }, { status: 400 });
+    }
+
     const rawItems = extractItems(parsed);
 
     let processed = 0;
     for (const raw of rawItems) {
-      const partNumber =
-        toStringField(raw.partNumber) ||
-        toStringField(raw.PartNumber) ||
-        toStringField(raw.code) ||
-        toStringField(raw.Code) ||
-        toStringField(raw.sku) ||
-        toStringField(raw.SKU);
-
+      const partNumber = toStringField(raw.ean?.[0]);
       if (!partNumber) continue;
 
-      const quantity =
-        toNumberField(raw.quantity) ??
-        toNumberField(raw.Quantity) ??
-        toNumberField(raw.stock) ??
-        toNumberField(raw.Stock) ??
-        0;
+      const quantity = Math.round(toNumberField(raw.quantity?.[0]) ?? 0);
 
-      const supplierPrice =
-        toNumberField(raw.supplierPrice) ??
-        toNumberField(raw.SupplierPrice) ??
-        toNumberField(raw.price) ??
-        toNumberField(raw.Price) ??
-        0;
+      const supplierPrice = toNumberField(raw.price?.[0]) ?? 0;
 
       const master = await prisma.masterProduct.findUnique({
         where: { partNumber },
@@ -183,6 +177,7 @@ export async function POST(request: NextRequest) {
       supplierId: supplier.id,
       supplierName: supplier.name,
       count: processed,
+      message: `Successfully processed ${processed} items using ean as part number`,
     });
   } catch (error) {
     console.error("[import-supplier] error:", error);

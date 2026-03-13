@@ -6,23 +6,13 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
-const parser = new Parser({ explicitArray: false, trim: true });
+const parser = new Parser({ explicitArray: true, trim: true });
 
 type MasterXmlItem = {
-  partNumber?: string;
-  PartNumber?: string;
-  code?: string;
-  Code?: string;
-  name?: string;
-  Name?: string;
-  description?: string;
-  Description?: string;
-  brand?: string;
-  Brand?: string;
-  msrp?: string | number;
-  MSRP?: string | number;
-  officialMsrp?: string | number;
-  price?: string | number;
+  ean?: string[];
+  name?: string[];
+  price?: string[];
+  brand?: string[];
 };
 
 function toStringField(v: unknown): string | undefined {
@@ -48,13 +38,10 @@ function extractItems(root: any): MasterXmlItem[] {
       (node.Item as MasterXmlItem) ||
       (node as MasterXmlItem);
 
-    if (
-      maybeItem &&
-      (maybeItem.partNumber ||
-        maybeItem.PartNumber ||
-        maybeItem.code ||
-        maybeItem.Code)
-    ) {
+    const hasEan =
+      maybeItem?.ean != null &&
+      (Array.isArray(maybeItem.ean) ? maybeItem.ean.length > 0 : true);
+    if (maybeItem && hasEan) {
       items.push(maybeItem);
     }
 
@@ -129,29 +116,12 @@ export async function POST(request: NextRequest) {
     let processed = 0;
 
     for (const raw of rawItems) {
-      const partNumber =
-        toStringField(raw.partNumber) ||
-        toStringField(raw.PartNumber) ||
-        toStringField(raw.code) ||
-        toStringField(raw.Code);
-
+      const partNumber = toStringField(raw.ean?.[0]);
       if (!partNumber) continue;
 
-      const name =
-        toStringField(raw.name) ||
-        toStringField(raw.Name) ||
-        toStringField(raw.description) ||
-        toStringField(raw.Description) ||
-        partNumber;
-
-      const brand = toStringField(raw.brand) || toStringField(raw.Brand) || "Volvo";
-
-      const msrp =
-        toNumberField(raw.officialMsrp) ??
-        toNumberField(raw.MSRP) ??
-        toNumberField(raw.msrp) ??
-        toNumberField(raw.price) ??
-        0;
+      const name = toStringField(raw.name?.[0]) || partNumber;
+      const brand = toStringField(raw.brand?.[0]) || "Volvo";
+      const officialMsrp = toNumberField(raw.price?.[0]) ?? 0;
 
       await prisma.masterProduct.upsert({
         where: { partNumber },
@@ -159,19 +129,23 @@ export async function POST(request: NextRequest) {
           partNumber,
           name,
           brand,
-          officialMsrp: msrp,
+          officialMsrp,
         },
         update: {
           name,
           brand,
-          officialMsrp: msrp,
+          officialMsrp,
         },
       });
 
       processed += 1;
     }
 
-    return Response.json({ success: true, count: processed });
+    return Response.json({
+      success: true,
+      count: processed,
+      message: `Successfully processed ${processed} items using ean as part number`,
+    });
   } catch (error) {
     console.error("[import-master] error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
