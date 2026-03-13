@@ -1,16 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   LayoutDashboard,
   Search,
-  Plus,
   Hash,
   Building2,
   ClipboardList,
   ChevronDown,
   Upload,
   X,
+  Loader2,
 } from "lucide-react";
 
 type SupplierDTO = {
@@ -49,71 +49,74 @@ const formatCurrency = (value: number) =>
     maximumFractionDigits: 2,
   }).format(value);
 
+const MIN_SEARCH_LENGTH = 3;
+const SEARCH_LIMIT = 50;
+
 export default function MarketplaceDashboard() {
   const [products, setProducts] = useState<MasterProductDTO[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [uploadingMaster, setUploadingMaster] = useState(false);
   const [uploadingSupplier, setUploadingSupplier] = useState(false);
   const [supplierName, setSupplierName] = useState("");
 
-  const fetchProducts = async () => {
+  const runSearch = useCallback(async () => {
+    const query = searchTerm.trim();
+    if (query.length < MIN_SEARCH_LENGTH) return;
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch("/api/master-products", { cache: "no-store" });
+      const params = new URLSearchParams({ q: query, limit: String(SEARCH_LIMIT) });
+      const res = await fetch(`/api/master-products?${params}`, { cache: "no-store" });
       if (!res.ok) {
         throw new Error(`Αποτυχία φόρτωσης (${res.status})`);
       }
       const data = (await res.json()) as MasterProductDTO[] | { error?: string };
       if (!Array.isArray(data)) {
-        throw new Error((data as any).error || "Μη έγκυρη απάντηση.");
+        throw new Error((data as { error?: string }).error || "Μη έγκυρη απάντηση.");
       }
       setProducts(data);
+      setHasSearched(true);
     } catch (e) {
       console.error(e);
       setError("Δεν ήταν δυνατή η φόρτωση του τιμοκαταλόγου.");
+      setProducts([]);
+      setHasSearched(true);
     } finally {
       setLoading(false);
     }
+  }, [searchTerm]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    runSearch();
   };
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const filtered = products.filter((p) => {
-    const q = searchTerm.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      p.partNumber.toLowerCase().includes(q) ||
-      p.name.toLowerCase().includes(q) ||
-      p.brand.toLowerCase().includes(q)
-    );
-  });
 
   const stats = [
     {
       label: "Συνολικά Κωδικοί",
-      value: loading ? "—" : products.length.toString(),
+      value: loading ? "—" : (hasSearched ? products.length : "—").toString(),
       icon: Hash,
     },
     {
       label: "Προμηθευτές",
-      value: loading
-        ? "—"
-        : new Set(
-            products.flatMap((p) => p.stocks.map((s) => s.supplier.name)),
-          ).size.toString(),
+      value:
+        loading || !hasSearched
+          ? "—"
+          : new Set(
+              products.flatMap((p) => p.stocks.map((s) => s.supplier.name)),
+            ).size.toString(),
       icon: Building2,
     },
     {
       label: "Εγγραφές Αποθέματος",
-      value: loading
-        ? "—"
-        : products.reduce((acc, p) => acc + p.stocks.length, 0).toString(),
+      value:
+        loading || !hasSearched
+          ? "—"
+          : products.reduce((acc, p) => acc + p.stocks.length, 0).toString(),
       icon: ClipboardList,
     },
   ];
@@ -140,7 +143,7 @@ export default function MarketplaceDashboard() {
         throw new Error(data.error || "Αποτυχία ενημέρωσης τιμοκαταλόγου.");
       }
       alert(`Ενημερώθηκαν ${data.count} κωδικοί από τον τιμοκατάλογο.`);
-      await fetchProducts();
+      if (searchTerm.trim().length >= MIN_SEARCH_LENGTH) await runSearch();
     } catch (err) {
       console.error(err);
       alert("Αποτυχία ενημέρωσης τιμοκαταλόγου.");
@@ -176,7 +179,7 @@ export default function MarketplaceDashboard() {
       alert(
         `Ενημερώθηκαν ${data.count} εγγραφές αποθέματος για τον προμηθευτή ${data.supplierName}.`,
       );
-      await fetchProducts();
+      if (searchTerm.trim().length >= MIN_SEARCH_LENGTH) await runSearch();
     } catch (err) {
       console.error(err);
       alert("Αποτυχία ενημέρωσης αποθέματος προμηθευτή.");
@@ -217,26 +220,38 @@ export default function MarketplaceDashboard() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Header / Filters / Uploaders */}
         <header className="flex flex-wrap items-center gap-4 border-b border-slate-800 bg-slate-950/98 px-6 py-4">
-          <div className="relative flex min-w-[220px] flex-1 max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Αναζήτηση με κωδικό, περιγραφή ή brand..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 pl-10 pr-10 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition-all focus:border-blue-500"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:bg-slate-700/80 hover:text-slate-200"
-                aria-label="Καθαρισμός αναζήτησης"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          <form
+            onSubmit={handleSearchSubmit}
+            className="relative flex min-w-[220px] flex-1 max-w-md items-center gap-2"
+          >
+            <div className="relative flex flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Αναζήτηση με κωδικό, περιγραφή ή brand (min 3 χαρακτήρες)..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 pl-10 pr-10 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition-all focus:border-blue-500"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:bg-slate-700/80 hover:text-slate-200"
+                  aria-label="Καθαρισμός αναζήτησης"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={searchTerm.trim().length < MIN_SEARCH_LENGTH || loading}
+              className="shrink-0 rounded-lg border border-blue-500/50 bg-blue-500/20 px-4 py-2.5 text-sm font-medium text-blue-300 transition-colors hover:bg-blue-500/30 disabled:pointer-events-none disabled:opacity-50"
+            >
+              Αναζήτηση
+            </button>
+          </form>
 
           {/* Upload cards */}
           <div className="flex flex-1 flex-wrap items-stretch gap-3">
@@ -326,12 +341,17 @@ export default function MarketplaceDashboard() {
             </div>
             <div className="overflow-x-auto">
               {loading ? (
-                <p className="p-6 text-sm text-slate-400">Φόρτωση...</p>
+                <div className="flex items-center gap-3 p-6 text-sm text-slate-400">
+                  <Loader2 className="h-5 w-5 animate-spin shrink-0" />
+                  <span>Searching...</span>
+                </div>
               ) : error ? (
                 <p className="p-6 text-sm text-red-400">{error}</p>
-              ) : filtered.length === 0 ? (
-                <p className="p-6 text-sm text-slate-400">
-                  Δεν βρέθηκαν προϊόντα για τα κριτήρια αναζήτησης.
+              ) : hasSearched && products.length === 0 ? (
+                <p className="p-6 text-sm text-slate-400">No parts found.</p>
+              ) : !hasSearched ? (
+                <p className="p-6 text-sm text-slate-500">
+                  Πληκτρολόγησε τουλάχιστον 3 χαρακτήρες και πάτα Enter ή κλικ στο &quot;Αναζήτηση&quot; για να φορτώσεις αποτελέσματα.
                 </p>
               ) : (
                 <table className="w-full text-sm">
@@ -345,7 +365,7 @@ export default function MarketplaceDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((product) => {
+                    {products.map((product) => {
                       const isExpanded = !!expanded[product.id];
                       const stocks = product.stocks || [];
                       const msrp = product.officialMsrp ?? 0;
