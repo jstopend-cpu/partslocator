@@ -54,8 +54,8 @@ const BrandBadge = ({ brand }: { brand: string }) => {
 };
 
 function formatPrice(price: unknown): string {
-  const n = Number(price);
-  if (!Number.isFinite(n)) return "0,00 €";
+  const n = typeof price === "number" ? price : Number(price);
+  if (n == null || !Number.isFinite(n) || Number.isNaN(n)) return "0,00 €";
   return n.toLocaleString("el-GR", {
     style: "currency",
     currency: "EUR",
@@ -471,8 +471,7 @@ export default function DashboardClient({
             {!error && filteredProducts.length === 0 && (
               <div className="rounded-xl border border-slate-800 bg-slate-900/80 px-4 py-6 text-sm text-slate-400">
                 Δεν βρέθηκαν προϊόντα για την αναζήτηση{" "}
-                <span className="font-medium text-slate-200">"{searchTermProp || searchInput}"</span>. Δοκίμασε άλλη
-                ονομασία ή EAN.
+                <span className="font-medium text-slate-200">&quot;{searchTermProp || searchInput}&quot;</span>. Δοκίμαστε άλλη ονομασία ή EAN.
               </div>
             )}
 
@@ -727,8 +726,7 @@ export default function DashboardClient({
           </aside>
         </div>
         )}
-        </main>
-      </div>
+      </main>
     </div>
   );
 }
