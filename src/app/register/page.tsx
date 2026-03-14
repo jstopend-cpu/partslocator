@@ -137,6 +137,7 @@ export default function RegisterPage() {
             body: JSON.stringify({
               email,
               businessName: business?.companyName ?? "",
+              afm: afm.replace(/\s/g, "").toUpperCase() || undefined,
             }),
           });
         } catch (_) {}

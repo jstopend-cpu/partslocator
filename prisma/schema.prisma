@@ -173,6 +173,20 @@ model Profile {
   updatedAt        DateTime @updatedAt
 }
 
+// B2B registrations (from /register flow). Recorded when welcome email is sent.
+model B2BRegistration {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  companyName         String    // Επωνυμία (from VIES/AFM)
+  afm                 String    // ΑΦΜ or VAT (e.g. EL123456789)
+  registeredAt        DateTime  @default(now())
+  welcomeEmailSentAt  DateTime? // set when welcome email sent successfully
+
+  @@index([registeredAt])
+  @@index([afm])
+  @@index([companyName])
+}
+
 // Universal Importer: saved field mappings + options for reuse
 model ImportProfile {
   id          String   @id @default(cuid())

@@ -4,11 +4,11 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
-import { ArrowLeft, BarChart3, Package, Loader2, Warehouse, Menu, X, FileInput, Truck } from "lucide-react";
-
-const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
+import { ArrowLeft, BarChart3, Package, Loader2, Warehouse, Menu, X, FileInput, Truck, UserPlus } from "lucide-react";
+import { canAccessAdmin } from "@/app/actions/b2b-registrations";
 
 const NAV_ITEMS = [
+  { href: "/admin", label: "B2B Εγγραφές", icon: UserPlus },
   { href: "/admin/dashboard", label: "Analytics Dashboard", icon: BarChart3 },
   { href: "/admin/orders", label: "Διαχείριση παραγγελιών", icon: Package },
   { href: "/admin/inventory", label: "Απόθεμα", icon: Warehouse },
@@ -26,24 +26,38 @@ export default function AdminLayout({
   const { userId, isLoaded } = useAuth();
   const { user } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [adminAllowed, setAdminAllowed] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!isLoaded) return;
+    if (!userId) {
+      setAdminAllowed(false);
+      router.replace("/");
+      return;
+    }
     const role = (user?.publicMetadata as { role?: string } | undefined)?.role;
     if (role === "SUPPLIER") {
       router.replace("/supplier/dashboard");
       return;
     }
-    if (userId !== ADMIN_USER_ID) {
-      router.replace("/");
-    }
+    canAccessAdmin().then((allowed) => {
+      setAdminAllowed(allowed);
+      if (!allowed) router.replace("/");
+    });
   }, [isLoaded, userId, user?.publicMetadata, router]);
 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  if (!isLoaded || (isLoaded && userId !== ADMIN_USER_ID)) {
+  if (!isLoaded || adminAllowed === false) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
+      </div>
+    );
+  }
+  if (isLoaded && adminAllowed === null && userId) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
         <Loader2 className="h-8 w-8 animate-spin text-slate-500" />

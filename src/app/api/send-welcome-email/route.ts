@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import prisma from "@/database/client";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +11,14 @@ const FROM_NAME = "PartsLocator";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as { email?: string; businessName?: string };
+    const body = (await request.json()) as {
+      email?: string;
+      businessName?: string;
+      afm?: string;
+    };
     const email = typeof body?.email === "string" ? body.email.trim() : "";
     const businessName = typeof body?.businessName === "string" ? body.businessName.trim() : "Επώνυμο Εταιρείας";
+    const afm = typeof body?.afm === "string" ? body.afm.trim() : "";
 
     if (!email) {
       return NextResponse.json(
@@ -63,6 +69,23 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    const now = new Date();
+    await prisma.b2BRegistration.upsert({
+      where: { email },
+      create: {
+        email,
+        companyName: businessName,
+        afm: afm || "—",
+        registeredAt: now,
+        welcomeEmailSentAt: now,
+      },
+      update: {
+        companyName: businessName,
+        afm: afm || "—",
+        welcomeEmailSentAt: now,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (e) {
