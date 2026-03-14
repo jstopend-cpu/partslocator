@@ -426,10 +426,10 @@ export default function MarketplaceDashboardContent() {
             const hasResults = hasSearched && products.length > 0;
             const showCenteredEmpty = !isLoading && !error && (!hasSearched || products.length === 0);
 
-            const searchForm = (
+            const searchForm = (maxWidthClass: string) => (
               <form
                 onSubmit={handleSearchSubmit}
-                className="relative flex w-full max-w-2xl flex-shrink-0 items-center gap-2"
+                className={`relative flex w-full flex-shrink-0 items-center gap-2 ${maxWidthClass}`}
               >
                 <div className="relative flex flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
@@ -464,21 +464,25 @@ export default function MarketplaceDashboardContent() {
 
             if (showCenteredEmpty) {
               return (
-                <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-4 py-8">
-                  <h1 className="text-center text-4xl font-bold tracking-tighter text-slate-100">
-                    PARTSLOCATOR
-                  </h1>
-                  <div className="w-full max-w-2xl px-2">{searchForm}</div>
-                  <div className="flex flex-col items-center gap-3 text-center">
-                    <Search className="h-12 w-12 shrink-0 text-slate-500 opacity-30" aria-hidden />
-                    <p className="text-sm font-medium text-slate-500">
-                      {hasSearched && products.length === 0
-                        ? "Δεν βρέθηκαν ανταλλακτικά. Δοκιμάστε άλλον όρο ή μάρκα."
-                        : "Πραγματοποιήστε μια αναζήτηση για να δείτε αποτελέσματα"}
-                    </p>
-                    <p className="max-w-sm text-xs text-slate-500">
-                      Αναζητήστε με κωδικό, περιγραφή ή επιλέξτε μάρκα από τη sidebar.
-                    </p>
+                <div className="flex min-h-[70vh] flex-1 flex-col items-center justify-center px-4 py-8">
+                  <div className="flex w-full max-w-2xl flex-col items-center justify-center">
+                    <h1 className="mb-10 text-center text-5xl font-extrabold tracking-tighter text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.15)]">
+                      PARTSLOCATOR
+                    </h1>
+                    <div className="w-full max-w-2xl">
+                      {searchForm("max-w-2xl")}
+                    </div>
+                    <div className="mt-12 flex w-full max-w-2xl flex-col items-center justify-center gap-3 text-center">
+                      <Search className="h-12 w-12 shrink-0 text-slate-400 opacity-40" aria-hidden />
+                      <p className="text-base font-medium text-slate-500">
+                        {hasSearched && products.length === 0
+                          ? "Δεν βρέθηκαν ανταλλακτικά. Δοκιμάστε άλλον όρο ή μάρκα."
+                          : "Πραγματοποιήστε μια αναζήτηση για να δείτε αποτελέσματα"}
+                      </p>
+                      <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">
+                        Αναζητήστε με κωδικό, περιγραφή ή επιλέξτε μάρκα από τη sidebar.
+                      </p>
+                    </div>
                   </div>
                 </div>
               );
@@ -490,7 +494,7 @@ export default function MarketplaceDashboardContent() {
                   <h1 className="text-center text-3xl font-bold tracking-tighter text-slate-100 sm:text-4xl">
                     PARTSLOCATOR
                   </h1>
-                  <div className="w-full max-w-2xl">{searchForm}</div>
+                  <div className="w-full max-w-2xl">{searchForm("max-w-2xl")}</div>
                 </div>
                 {isLoading ? (
                   <div className="flex items-center gap-3 py-8 text-sm text-slate-400">
