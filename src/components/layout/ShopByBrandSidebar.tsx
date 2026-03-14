@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Search as SearchIcon } from "lucide-react";
+import { ChevronDown, Search as SearchIcon, X } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { getPublicBrandsWithLogos, type BrandRow } from "@/app/actions/categories";
 
@@ -47,6 +47,12 @@ export function ShopByBrandSidebar() {
     setOpen(false);
     setSearchQuery("");
     router.push(`/search?brand=${encodeURIComponent(brand.name)}`);
+  };
+
+  const handleClearBrand = () => {
+    setOpen(false);
+    setSearchQuery("");
+    router.push("/");
   };
 
   if (loading || brands.length === 0) {
@@ -95,6 +101,19 @@ export function ShopByBrandSidebar() {
             className="overflow-y-auto py-1"
             style={{ maxHeight: LIST_MAX_HEIGHT }}
           >
+            <li className="border-b border-slate-700/80">
+              <button
+                type="button"
+                onClick={handleClearBrand}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-300 transition-colors hover:bg-slate-700/80"
+                role="option"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-600/80 bg-slate-700/80 text-slate-400">
+                  <X className="h-4 w-4" />
+                </span>
+                <span>Όλες οι μάρκες</span>
+              </button>
+            </li>
             {filteredBrands.length === 0 ? (
               <li className="px-3 py-4 text-center text-sm text-slate-500">
                 Δεν βρέθηκαν brands
