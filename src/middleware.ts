@@ -1,5 +1,3 @@
-import { NextResponse } from "next/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-export function middleware() {
-  return NextResponse.next();
-}
+export default clerkMiddleware();

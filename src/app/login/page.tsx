@@ -49,10 +49,19 @@ export default function LoginPage() {
     }
   }, [isLoaded, isSignedIn, router]);
 
-  const handleSocialSignIn = async (strategy: "oauth_google" | "oauth_apple") => {
+  const handleGoogleSignIn = () => {
     if (!signIn) return;
-    await signIn.authenticateWithRedirect({
-      strategy,
+    signIn.authenticateWithRedirect({
+      strategy: "oauth_google",
+      redirectUrl: "/sign-in/sso-callback",
+      redirectUrlComplete: "/dashboard",
+    });
+  };
+
+  const handleAppleSignIn = () => {
+    if (!signIn) return;
+    signIn.authenticateWithRedirect({
+      strategy: "oauth_apple",
       redirectUrl: "/sign-in/sso-callback",
       redirectUrlComplete: "/dashboard",
     });
@@ -86,7 +95,7 @@ export default function LoginPage() {
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => handleSocialSignIn("oauth_google")}
+              onClick={handleGoogleSignIn}
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-600 bg-slate-800/80 py-3 text-sm font-medium text-slate-100 transition-colors hover:border-slate-500 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
             >
               <GoogleIcon className="h-5 w-5" />
@@ -94,7 +103,7 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => handleSocialSignIn("oauth_apple")}
+              onClick={handleAppleSignIn}
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-700 bg-slate-950 py-3 text-sm font-medium text-white transition-colors hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
             >
               <AppleIcon className="h-5 w-5 text-white" />
