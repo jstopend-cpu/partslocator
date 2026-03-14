@@ -1,11 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Upload, Loader2, Package, Building2, History } from "lucide-react";
+import { Upload, Loader2, Package, Building2, History, Plus } from "lucide-react";
 import { getInventoryStats } from "@/app/actions/orders";
 import { getLatestUpdateLog, type LatestUpdateLog } from "@/app/actions/update-log";
-
-const MASTER_BRANDS = ["VW", "AUDI", "SEAT", "SKODA"] as const;
+import {
+  getCategories,
+  getBrandsByCategory,
+  addBrand,
+  type CategoryRow,
+  type BrandRow,
+} from "@/app/actions/categories";
 
 export default function AdminInventoryPage() {
   const [stats, setStats] = useState<{ totalParts: number; totalSuppliers: number } | null>(null);
@@ -13,9 +18,18 @@ export default function AdminInventoryPage() {
   const [uploadingMaster, setUploadingMaster] = useState(false);
   const [uploadingSupplier, setUploadingSupplier] = useState(false);
   const [supplierName, setSupplierName] = useState("");
-  const [masterBrand, setMasterBrand] = useState<string>("");
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
+  const [brands, setBrands] = useState<BrandRow[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [selectedBrandId, setSelectedBrandId] = useState<string>("");
   const [latestUpdate, setLatestUpdate] = useState<LatestUpdateLog>(null);
-  const isBrandSelected = !!masterBrand.trim();
+  const [newBrandCategoryId, setNewBrandCategoryId] = useState<string>("");
+  const [newBrandName, setNewBrandName] = useState("");
+  const [addingBrand, setAddingBrand] = useState(false);
+
+  const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
+  const selectedBrand = brands.find((b) => b.id === selectedBrandId);
+  const canUploadMaster = !!selectedCategoryId && !!selectedBrandId;
 
   useEffect(() => {
     getInventoryStats().then((data) => {
@@ -24,18 +38,34 @@ export default function AdminInventoryPage() {
     });
   }, []);
 
-  const fetchLatestUpdate = useCallback(async (brand: string) => {
-    if (!brand.trim()) {
+  useEffect(() => {
+    getCategories().then(setCategories);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedCategoryId.trim()) {
+      setBrands([]);
+      setSelectedBrandId("");
+      return;
+    }
+    getBrandsByCategory(selectedCategoryId).then((list) => {
+      setBrands(list);
+      setSelectedBrandId("");
+    });
+  }, [selectedCategoryId]);
+
+  const fetchLatestUpdate = useCallback(async (brandId: string) => {
+    if (!brandId.trim()) {
       setLatestUpdate(null);
       return;
     }
-    const result = await getLatestUpdateLog(brand);
+    const result = await getLatestUpdateLog(brandId);
     setLatestUpdate(result);
   }, []);
 
   useEffect(() => {
-    fetchLatestUpdate(masterBrand);
-  }, [masterBrand, fetchLatestUpdate]);
+    fetchLatestUpdate(selectedBrandId);
+  }, [selectedBrandId, fetchLatestUpdate]);
 
   const refreshStats = () => {
     getInventoryStats().then((data) => {
@@ -43,16 +73,40 @@ export default function AdminInventoryPage() {
     });
   };
 
+  const handleAddBrand = async () => {
+    if (!newBrandCategoryId.trim() || !newBrandName.trim()) {
+      alert("Επίλεξε κατηγορία και πληκτρολόγησε όνομα brand.");
+      return;
+    }
+    setAddingBrand(true);
+    try {
+      const result = await addBrand(newBrandName.trim(), newBrandCategoryId);
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setNewBrandName("");
+      if (newBrandCategoryId === selectedCategoryId) {
+        getBrandsByCategory(selectedCategoryId).then(setBrands);
+      }
+    } finally {
+      setAddingBrand(false);
+    }
+  };
+
   const handleUploadMaster = async (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
-    if (!file || !isBrandSelected) return;
+    if (!file || !canUploadMaster || !selectedCategory || !selectedBrand) return;
     try {
       setUploadingMaster(true);
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("brand", masterBrand);
+      formData.append("categoryId", selectedCategoryId);
+      formData.append("categoryName", selectedCategory.name);
+      formData.append("brandId", selectedBrandId);
+      formData.append("brandName", selectedBrand.name);
       const res = await fetch("/api/import-master", {
         method: "POST",
         body: formData,
@@ -63,7 +117,7 @@ export default function AdminInventoryPage() {
       }
       alert(`Ενημερώθηκαν ${data.count} κωδικοί από τον τιμοκατάλογο.`);
       refreshStats();
-      await fetchLatestUpdate(masterBrand);
+      await fetchLatestUpdate(selectedBrandId);
     } catch (err) {
       console.error(err);
       alert("Αποτυχία ενημέρωσης τιμοκαταλόγου.");
@@ -155,44 +209,110 @@ export default function AdminInventoryPage() {
           </div>
         </section>
 
-        {/* Middle: Master Catalog Update */}
+        {/* Manage Brands */}
+        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+          <h2 className="mb-2 text-lg font-semibold text-slate-200">
+            Διαχείριση Brands
+          </h2>
+          <p className="mb-4 text-sm text-slate-500">
+            Επίλεξε κατηγορία και πληκτρολόγησε το όνομα του brand για να το προσθέσεις.
+          </p>
+          <div className="flex max-w-md flex-wrap items-end gap-3">
+            <div className="min-w-[140px] flex-1">
+              <label htmlFor="new-brand-category" className="mb-1.5 block text-xs font-medium text-slate-500">
+                Κατηγορία
+              </label>
+              <select
+                id="new-brand-category"
+                value={newBrandCategoryId}
+                onChange={(e) => setNewBrandCategoryId(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2.5 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">Επίλεξε...</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-[140px] flex-1">
+              <label htmlFor="new-brand-name" className="mb-1.5 block text-xs font-medium text-slate-500">
+                Όνομα brand
+              </label>
+              <input
+                id="new-brand-name"
+                type="text"
+                value={newBrandName}
+                onChange={(e) => setNewBrandName(e.target.value)}
+                placeholder="π.χ. VW, AUDI"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleAddBrand}
+              disabled={addingBrand || !newBrandCategoryId.trim() || !newBrandName.trim()}
+              className="flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-700 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-600 disabled:opacity-50"
+            >
+              {addingBrand ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Προσθήκη
+            </button>
+          </div>
+        </section>
+
+        {/* Master Catalog Update */}
         <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
           <h2 className="mb-2 text-lg font-semibold text-slate-200">
             Master Catalog Update
           </h2>
           <p className="mb-4 text-sm text-slate-500">
-            Επίλεξε brand, μετά φόρτωσε XML με κωδικούς, ονόματα και τιμές (ean, name, price).
-            Ενημερώνει τον κεντρικό τιμοκατάλογο.
+            Επίλεξε κατηγορία και brand, μετά φόρτωσε XML (ean, name, price). Ενημερώνει τον κεντρικό τιμοκατάλογο.
           </p>
 
-          {/* Brand: Required Select */}
+          {/* 1st: Category */}
+          <div className="mb-4 max-w-md">
+            <label htmlFor="master-category" className="mb-1.5 block text-xs font-medium text-slate-500">
+              Κατηγορία <span className="text-amber-500/80">*</span>
+            </label>
+            <select
+              id="master-category"
+              value={selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2.5 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">Επίλεξε κατηγορία...</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 2nd: Brand (filtered by category) */}
           <div className="mb-4 max-w-md">
             <label htmlFor="master-brand" className="mb-1.5 block text-xs font-medium text-slate-500">
               Brand <span className="text-amber-500/80">*</span>
             </label>
             <select
               id="master-brand"
-              value={masterBrand}
-              onChange={(e) => setMasterBrand(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2.5 text-sm text-slate-200 transition-colors hover:border-slate-600 focus:border-blue-500 focus:outline-none"
+              value={selectedBrandId}
+              onChange={(e) => setSelectedBrandId(e.target.value)}
+              disabled={!selectedCategoryId}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2.5 text-sm text-slate-200 focus:border-blue-500 focus:outline-none disabled:opacity-60"
             >
               <option value="">Επίλεξε brand...</option>
-              {MASTER_BRANDS.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
+              {brands.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
               ))}
             </select>
           </div>
 
-          {/* Latest Update Info (for selected brand) */}
-          {isBrandSelected && (
+          {/* Latest Update (for selected brand) */}
+          {selectedBrandId && selectedBrand && (
             <div className="mb-4">
               {latestUpdate ? (
                 <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700/80 bg-slate-800/50 px-3 py-2 text-xs text-slate-500 shadow-sm">
                   <History className="h-4 w-4 shrink-0 text-slate-500" />
                   <span>
-                    Τελευταία ενημέρωση {masterBrand}:{" "}
+                    Τελευταία ενημέρωση {latestUpdate.categoryName ?? selectedCategory?.name} / {latestUpdate.brandName ?? selectedBrand.name}:{" "}
                     <span className="text-slate-400">
                       {new Date(latestUpdate.createdAt).toLocaleString("el-GR", {
                         day: "2-digit",
@@ -208,7 +328,7 @@ export default function AdminInventoryPage() {
               ) : (
                 <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-xs text-slate-500">
                   <History className="h-4 w-4 shrink-0 text-slate-500" />
-                  <span>Δεν υπάρχει ακόμα ενημέρωση για {masterBrand}.</span>
+                  <span>Δεν υπάρχει ακόμα ενημέρωση για {selectedBrand.name}.</span>
                 </div>
               )}
             </div>
@@ -216,7 +336,7 @@ export default function AdminInventoryPage() {
 
           <label
             className={`flex max-w-md items-center gap-3 rounded-lg border px-4 py-3 text-sm transition-colors ${
-              isBrandSelected && !uploadingMaster
+              canUploadMaster && !uploadingMaster
                 ? "cursor-pointer border-slate-700 bg-slate-800/50 text-slate-300 hover:border-blue-500/50 hover:bg-slate-800"
                 : "cursor-not-allowed border-slate-700/80 bg-slate-800/40 text-slate-500 opacity-70"
             }`}
@@ -229,8 +349,8 @@ export default function AdminInventoryPage() {
             <span>
               {uploadingMaster
                 ? "Φόρτωση..."
-                : !isBrandSelected
-                  ? "Επίλεξε brand για να ανεβάσεις XML"
+                : !canUploadMaster
+                  ? "Επίλεξε κατηγορία και brand για να ανεβάσεις XML"
                   : "Επιλογή XML Master Catalog"}
             </span>
             <input
@@ -238,7 +358,7 @@ export default function AdminInventoryPage() {
               accept=".xml"
               className="hidden"
               onChange={handleUploadMaster}
-              disabled={uploadingMaster || !isBrandSelected}
+              disabled={uploadingMaster || !canUploadMaster}
             />
           </label>
         </section>

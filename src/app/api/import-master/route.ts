@@ -82,15 +82,22 @@ export async function POST(request: NextRequest) {
     const contentType = request.headers.get("content-type") ?? "";
     let xmlText = "";
 
-    // Extract brand from body (formData) or query
-    let brandFromRequest = "";
+    // Extract category, brand, and file from body (formData)
+    let categoryId = "";
+    let categoryName = "";
+    let brandId = "";
+    let brandName = "";
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       const file = formData.get("file");
-      const brandParam = formData.get("brand");
-      if (typeof brandParam === "string" && brandParam.trim()) {
-        brandFromRequest = brandParam.trim();
-      }
+      const cId = formData.get("categoryId");
+      const cName = formData.get("categoryName");
+      const bId = formData.get("brandId");
+      const bName = formData.get("brandName");
+      if (typeof cId === "string" && cId.trim()) categoryId = cId.trim();
+      if (typeof cName === "string" && cName.trim()) categoryName = cName.trim();
+      if (typeof bId === "string" && bId.trim()) brandId = bId.trim();
+      if (typeof bName === "string" && bName.trim()) brandName = bName.trim();
       if (file && file instanceof File) {
         xmlText = await file.text();
       } else {
@@ -103,9 +110,9 @@ export async function POST(request: NextRequest) {
       xmlText = await request.text();
     }
 
-    if (!brandFromRequest) {
+    if (!brandId || !brandName) {
       return Response.json(
-        { error: "Brand is required. Select a brand (e.g. VW, AUDI, SEAT, SKODA)." },
+        { error: "Category and Brand are required. Select both from the dropdowns." },
         { status: 400 },
       );
     }
@@ -143,7 +150,7 @@ export async function POST(request: NextRequest) {
       records.push({
         partNumber,
         name,
-        brand: brandFromRequest,
+        brand: brandName,
         officialMsrp,
       });
     }
@@ -163,7 +170,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // After the import loop, create an UpdateLog record (brand, userId, current date)
+    // After the import loop, create an UpdateLog record (category + brand for audit trail)
     const user = await currentUser();
     const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim()
       || user?.emailAddresses?.[0]?.emailAddress
@@ -172,7 +179,10 @@ export async function POST(request: NextRequest) {
       data: {
         userId,
         userName: displayName,
-        brand: brandFromRequest,
+        categoryId: categoryId || undefined,
+        categoryName: categoryName || undefined,
+        brandId: brandId || undefined,
+        brandName: brandName || undefined,
       },
     });
 

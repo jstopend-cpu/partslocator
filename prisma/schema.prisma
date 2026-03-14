@@ -84,12 +84,38 @@ model SupplierStock {
   @@unique([masterProductId, supplierId])
 }
 
+model Category {
+  id    String  @id @default(cuid())
+  name  String  @unique
+  brands Brand[]
+
+  @@map("categories")
+}
+
+model Brand {
+  id         String   @id @default(cuid())
+  name       String
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  updateLogs UpdateLog[]
+
+  @@unique([name, categoryId])
+  @@index([categoryId])
+  @@map("brands")
+}
+
 model UpdateLog {
-  id        String   @id @default(cuid())
-  userId    String   // Clerk user id
-  userName  String   // Display name at time of update
-  brand     String
-  createdAt DateTime @default(now())
+  id           String    @id @default(cuid())
+  userId       String
+  userName     String
+  categoryId   String?
+  categoryName String?   // Audit: category name at time of update
+  brandId      String?
+  brandName    String?   // Audit: brand name at time of update
+  createdAt    DateTime  @default(now())
+
+  brand Brand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
+  @@index([brandId])
 }
