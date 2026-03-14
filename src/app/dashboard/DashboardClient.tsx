@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
 import {
   Search,
   LogOut,
@@ -170,7 +171,7 @@ export default function DashboardClient({
       window.sessionStorage.removeItem(STORAGE_KEY);
       window.localStorage.removeItem(STORAGE_KEY);
     }
-    router.replace("/login");
+    signOut?.({ redirectUrl: "/login" });
   };
 
   const filteredProducts = useMemo(() => {

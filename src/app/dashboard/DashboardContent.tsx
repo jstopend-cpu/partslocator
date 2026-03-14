@@ -26,20 +26,41 @@ export default function DashboardContent() {
     setIsMounted(true);
   }, []);
 
-  // TEMPORARILY DISABLED: fetch commented out to rule out data volume causing auth timeout / redirect loop.
+  const FETCH_TIMEOUT_MS = 12000;
+
   const loadProducts = useCallback((_pageNum: number, _searchTerm: string) => {
-    setLoading(false);
-    // setError(null);
-    // setLoading(true);
-    // const controller = new AbortController();
-    // const { signal } = controller;
-    // const url = `/api/products?page=${_pageNum}&search=${encodeURIComponent(_searchTerm)}`;
-    // fetch(url, { signal })
-    //   .then((res) => { ... })
-    //   .then(({ data, total }) => { ... })
-    //   .catch((e) => { ... });
-    // return () => controller.abort();
-    return () => {};
+    setError(null);
+    setLoading(true);
+    const controller = new AbortController();
+    const { signal } = controller;
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    const url = `/api/products?page=${_pageNum}&search=${encodeURIComponent(_searchTerm)}`;
+    fetch(url, { signal })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json().then((body: unknown) => ({
+          data: Array.isArray(body) ? body : [],
+          total: Number(res.headers.get("X-Total-Count") ?? 0) || 0,
+        }));
+      })
+      .then(({ data, total }) => {
+        setDashboardData(data);
+        setTotalCount(total);
+        setError(null);
+      })
+      .catch(() => {
+        setDashboardData([]);
+        setTotalCount(0);
+        setError(null);
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+        setLoading(false);
+      });
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, []);
 
   useEffect(() => {
