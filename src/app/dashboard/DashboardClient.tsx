@@ -7,8 +7,8 @@ import { useClerk, useUser, UserButton } from "@clerk/nextjs";
 import {
   Search,
   LogOut,
-  User,
   ShoppingCart,
+  Package,
   PackageSearch,
   CheckCircle2,
   AlertTriangle,
@@ -359,7 +359,7 @@ export default function DashboardClient({
         </nav>
         <div className="space-y-3 border-t border-slate-800 p-3">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Shop by Brand
+            SHOP BY BRAND
           </p>
           <select
             value={supplierFilter}
@@ -382,14 +382,14 @@ export default function DashboardClient({
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800/60 hover:text-red-300"
           >
             <LogOut className="h-4 w-4 shrink-0" aria-hidden />
-            Αποσύνδεση
+            Sign Out
           </button>
         </div>
       </aside>
 
       {/* Main: header + content */}
       <div className="flex flex-1 flex-col min-h-screen">
-        <header className="flex items-center justify-end gap-3 border-b border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur">
+        <header className="flex items-center justify-end gap-3 border-b border-slate-800 bg-transparent px-4 py-3">
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
@@ -401,6 +401,7 @@ export default function DashboardClient({
             href="/dashboard/orders"
             className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
           >
+            <Package className="h-4 w-4 shrink-0" aria-hidden />
             Οι Παραγγελίες μου
           </Link>
           {isAdmin && (
@@ -482,15 +483,6 @@ export default function DashboardClient({
                     })}
                   </div>
                 </section>
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <Search className="h-12 w-12 text-slate-700" aria-hidden />
-                  <p className="text-sm text-slate-500">
-                    Πραγματοποιήστε μια αναζήτηση για να δείτε αποτελέσματα
-                  </p>
-                  <p className="text-xs text-slate-600">
-                    Αναζητήστε με κωδικό, περιγραφή ή επιλέξτε μάρκα από τη sidebar.
-                  </p>
-                </div>
               </div>
             </div>
           ) : (
