@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useClerk, useUser } from "@clerk/nextjs";
+import { useClerk, useUser, UserButton } from "@clerk/nextjs";
 import {
   Search,
   LogOut,
@@ -56,12 +56,12 @@ const BrandBadge = ({ brand }: { brand: string }) => {
 function formatPrice(price: unknown): string {
   const n = typeof price === "number" ? price : Number(price);
   if (n == null || !Number.isFinite(n) || Number.isNaN(n)) return "0,00 €";
-  return n.toLocaleString("el-GR", {
+  return new Intl.NumberFormat("el-GR", {
     style: "currency",
     currency: "EUR",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  });
+  }).format(n);
 }
 
 type Props = {
@@ -95,6 +95,7 @@ export default function DashboardClient({
   );
   const [searchInput, setSearchInput] = useState(searchTermProp);
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
+  const hasSearched = Boolean(searchTermProp?.trim());
 
   useEffect(() => {
     setProducts(Array.isArray(initialProducts) ? initialProducts : []);
@@ -306,70 +307,108 @@ export default function DashboardClient({
     }
   };
 
-  const hasSearchResults = Boolean(searchTermProp?.trim());
-
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
-      {/* Header: centered logo, right: user + Manage (admin) + Sign Out */}
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur md:px-6">
-        <div className="flex-1" />
-        <div className="flex items-center justify-center">
-          <span className="text-lg font-bold tracking-widest text-white">PARTS LOCATOR</span>
+    <div className="flex min-h-screen bg-slate-950 text-slate-100">
+      {/* Left sidebar: slate-950 */}
+      <aside className="flex w-56 flex-col border-r border-slate-800 bg-slate-950">
+        <div className="flex h-14 items-center border-b border-slate-800 px-4">
+          <span className="text-sm font-semibold text-white">PARTS LOCATOR</span>
         </div>
-        <div className="flex flex-1 items-center justify-end gap-2">
-          {user && (
-            <div className="hidden items-center gap-2 rounded-full border border-slate-800 bg-slate-900/80 px-3 py-1.5 text-xs text-slate-200 sm:flex">
-              <User className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
-              <span className="font-medium">
-                {user.firstName || user.emailAddresses[0]?.emailAddress || "Account"}
-              </span>
-            </div>
-          )}
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700"
-            >
-              <Settings className="h-4 w-4 shrink-0" aria-hidden />
-              Manage
-            </Link>
-          )}
+        <nav className="flex-1 space-y-0.5 p-3">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800/60"
+          >
+            <PackageSearch className="h-4 w-4 shrink-0" aria-hidden />
+            Dashboard
+          </Link>
+          <Link
+            href="/dashboard/orders"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+          >
+            <ShoppingCart className="h-4 w-4 shrink-0" aria-hidden />
+            Οι Παραγγελίες μου
+          </Link>
+        </nav>
+        <div className="space-y-3 border-t border-slate-800 p-3">
+          <select
+            value={supplierFilter}
+            onChange={(e) => {
+              setSupplierFilter(e.target.value);
+              if (page !== 1) router.push("/dashboard?page=1");
+            }}
+            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+          >
+            <option value="all">Επίλεξε brand...</option>
+            {(suppliers || []).map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:border-red-500/70 hover:bg-red-600/10 hover:text-red-200"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800/60 hover:text-red-300"
           >
             <LogOut className="h-4 w-4 shrink-0" aria-hidden />
-            Sign Out
+            Αποσύνδεση
           </button>
         </div>
-      </header>
+      </aside>
 
-      <main className="flex-1 overflow-auto bg-slate-950">
-        {!hasSearchResults ? (
-          /* Initial state: centered search only */
-          <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 py-12">
-            <div className="w-full max-w-xl space-y-6">
-              <p className="text-center text-sm text-slate-400">
-                Αναζήτηση ανταλλακτικών με όνομα, κωδικό ή EAN
-              </p>
-              <div className="relative">
-                <Search
-                  className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
-                  aria-hidden
-                />
-                <input
-                  type="search"
-                  placeholder="Αναζήτηση με όνομα, κωδικό, EAN..."
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900/90 py-3.5 pl-12 pr-4 text-base text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                  value={searchInput}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  autoFocus
-                />
+      {/* Main: header + content */}
+      <div className="flex flex-1 flex-col min-h-screen">
+        <header className="flex items-center justify-end gap-3 border-b border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
+          >
+            <ShoppingCart className="h-4 w-4 shrink-0" aria-hidden />
+            <span className="hidden sm:inline">{cartItemCount} τεμ.</span>
+          </Link>
+          <Link
+            href="/dashboard/orders"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
+          >
+            Οι Παραγγελίες μου
+          </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-700"
+            >
+              <Settings className="h-4 w-4 shrink-0" aria-hidden />
+              Διαχείριση
+            </Link>
+          )}
+          <UserButton afterSignOutUrl="/login" />
+        </header>
+
+        <main className="flex-1 overflow-auto bg-slate-950">
+          {!hasSearched ? (
+            <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center px-4 py-12">
+              <div className="w-full max-w-xl space-y-8">
+                <h1 className="text-center text-2xl font-bold tracking-tight text-white">
+                  PARTSLOCATOR
+                </h1>
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
+                    aria-hidden
+                  />
+                  <input
+                    type="search"
+                    placeholder="Αναζήτηση με όνομα, κωδικό, EAN..."
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900/90 py-3.5 pl-12 pr-4 text-base text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                    value={searchInput}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    autoFocus
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
+          ) : (
           /* Search results: search bar, brand filter, table, cart */
           <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8 lg:flex-row">
             <div className="flex-1">
@@ -512,12 +551,11 @@ export default function DashboardClient({
               </div>
             </div>
 
-            {/* Desktop: clean table - scrollable */}
-            <div className="hidden overflow-x-auto overflow-y-auto rounded-xl border border-slate-800 md:block max-h-[70vh]">
+            <div className="hidden max-h-[70vh] overflow-x-auto overflow-y-auto rounded-xl border border-slate-800 md:block">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-800 bg-slate-800/60 text-xs font-medium uppercase tracking-wider text-slate-400">
-                    <th className="px-4 py-3">Προϊόν / EAN</th>
+                    <th className="px-4 py-3">{"Προϊόν / EAN"}</th>
                     <th className="px-4 py-3">Προμηθευτής</th>
                     <th className="px-4 py-3 text-right">Τιμή B2B</th>
                     <th className="px-4 py-3 text-center">Απόθεμα</th>
@@ -725,8 +763,9 @@ export default function DashboardClient({
             )}
           </aside>
         </div>
-        )}
-      </main>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
