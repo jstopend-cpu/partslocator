@@ -9,6 +9,9 @@
     "lint": "eslint",
     "install:legacy": "npm install --legacy-peer-deps"
   },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@clerk/nextjs": "^7.0.4",
     "@neondatabase/serverless": "^1.0.2",
@@ -46,6 +49,7 @@
     "eslint-config-next": "15.1.6",
     "prisma": "^7.4.2",
     "tailwindcss": "^4",
+    "tsx": "^4.19.0",
     "typescript": "^5"
   }
 }

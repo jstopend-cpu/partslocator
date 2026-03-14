@@ -16,6 +16,9 @@ export async function GET() {
         },
       },
     });
+    if (products.length === 0) {
+      console.log("[api/products] Returning empty array (no products in database).");
+    }
     return NextResponse.json(products);
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));

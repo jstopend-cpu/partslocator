@@ -93,6 +93,19 @@ export default function CustomerDashboardPage() {
     );
   }
 
+  if (safeProductsList.length === 0) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 py-12">
+        <p className="max-w-md text-center text-slate-300">
+          Δεν βρέθηκαν προϊόντα. Ξεκινήστε προσθέτοντας το πρώτο σας ανταλλακτικό!
+        </p>
+        <p className="text-sm text-slate-500">
+          Μπορείτε να εισάγετε δεδομένα από το Admin ή να τρέξετε το seed της βάσης.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <DashboardClient
       initialProducts={safeProductsList}
