@@ -1,35 +1,32 @@
 import { SignIn } from "@clerk/nextjs";
 
 const appearance = {
-  baseTheme: undefined,
   variables: {
-    colorPrimary: "#3b82f6",
-    colorText: "#ffffff",
-    colorBackground: "#1e293b",
-    colorInputBackground: "#0f172a",
-    colorInputText: "#ffffff",
-    colorTextSecondary: "#94a3b8",
+    colorPrimary: "#4f46e5",
+    colorText: "#1f2937",
+    colorBackground: "#ffffff",
+    colorInputBackground: "#ffffff",
+    colorInputText: "#1f2937",
+    colorTextSecondary: "#6b7280",
   },
   elements: {
-    card: "bg-slate-800 border border-slate-700 shadow-2xl rounded-2xl",
-    headerTitle: "text-white text-2xl font-bold",
-    headerSubtitle: "text-slate-400",
-    socialButtonsBlockButton: "bg-slate-700 border-slate-600 hover:bg-slate-600 transition-colors",
-    socialButtonsBlockButtonText: "text-white font-semibold",
-    socialButtonsBlockButtonArrow: "text-white",
-    formFieldLabel: "text-slate-300",
-    formInput: "bg-slate-950 border-slate-700 text-white focus:border-blue-500",
-    footerActionLink: "text-blue-400 hover:text-blue-300",
-    identityPreviewText: "text-white",
-    formButtonPrimary: "bg-blue-600 hover:bg-blue-700 transition-all",
-    dividerLine: "bg-slate-700",
-    dividerText: "text-slate-500",
+    card: "shadow-xl border border-gray-200 rounded-xl",
+    headerTitle: "text-gray-900 text-2xl font-bold",
+    headerSubtitle: "text-gray-500",
+    socialButtonsBlockButton: "bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm",
+    socialButtonsBlockButtonText: "text-gray-600 font-semibold",
+    formButtonPrimary: "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md normal-case text-sm",
+    formFieldLabel: "text-gray-700 font-medium",
+    formInput: "border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500",
+    footerActionLink: "text-indigo-600 hover:text-indigo-700 font-semibold",
+    dividerLine: "bg-gray-200",
+    dividerText: "text-gray-400",
   },
 };
 
 export default function SignInPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-4 pb-24 pt-8 sm:px-6 sm:pb-28">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#f9fafb] px-4 pb-24 pt-8 sm:px-6 sm:pb-28">
       <div className="w-full max-w-[420px]">
         <SignIn
           appearance={appearance}
