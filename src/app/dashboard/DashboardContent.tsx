@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import DashboardClient from "./DashboardClient";
 import type { DashboardProduct } from "./DashboardClient";
@@ -10,6 +12,7 @@ const PAGE_SIZE = 10;
 
 export default function DashboardContent() {
   const router = useRouter();
+  const { isLoaded, userId } = useAuth();
   const searchParams = useSearchParams();
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const search = searchParams.get("q") ?? searchParams.get("search") ?? "";
@@ -62,11 +65,12 @@ export default function DashboardContent() {
   }, []);
 
   useEffect(() => {
+    if (!isLoaded) return;
     const cleanup = loadProducts(page, search);
     return () => {
       if (typeof cleanup === "function") cleanup();
     };
-  }, [page, search, loadProducts]);
+  }, [isLoaded, page, search, loadProducts]);
 
   const safeProductsList = useMemo(
     () => (Array.isArray(dashboardData) ? dashboardData : []) as DashboardProduct[],
@@ -80,6 +84,28 @@ export default function DashboardContent() {
         .sort(),
     [dashboardData]
   );
+
+  if (!isLoaded) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-500" aria-hidden />
+      </div>
+    );
+  }
+
+  if (isLoaded && userId == null) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-950 px-4">
+        <p className="text-slate-300">Please log in to continue</p>
+        <Link
+          href="/login"
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+        >
+          Log in
+        </Link>
+      </div>
+    );
+  }
 
   if (!isMounted) {
     return (
