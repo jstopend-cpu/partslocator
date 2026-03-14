@@ -7,22 +7,24 @@ import { Loader2 } from "lucide-react";
 
 export default function SSOCallbackPage() {
   const router = useRouter();
-  const signIn = useSignIn();
+  const signInRaw = useSignIn();
+  const signIn = signInRaw as any;
+  const isLoaded = (signInRaw as { isLoaded?: boolean })?.isLoaded ?? true;
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!signIn) return;
+    if (!isLoaded || !signIn) return;
 
     signIn
       .handleRedirectCallback()
       .then(() => {
         router.replace("/dashboard");
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         console.error("SSO callback error:", err);
         setError("Η σύνδεση απέτυχε. Δοκίμασε ξανά.");
       });
-  }, [signIn, router]);
+  }, [signIn, isLoaded, router]);
 
   if (error) {
     return (
