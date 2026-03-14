@@ -1,21 +1,20 @@
 "use client";
 
 import { Suspense, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
 import DashboardContent from "./DashboardContent";
 
 export default function CustomerDashboardPage() {
-  const router = useRouter();
   const { isLoaded, userId } = useAuth();
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (userId == null) {
-      router.replace("/login");
+    if (userId == null && typeof window !== "undefined") {
+      window.location.href = "/login";
+      return;
     }
-  }, [isLoaded, userId, router]);
+  }, [isLoaded, userId]);
 
   if (!isLoaded) {
     return (
