@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAuth, useUser, UserButton } from "@clerk/nextjs";
 import {
   getCart,
@@ -14,6 +15,7 @@ import { createOrder as createOrderAction } from "@/app/actions/orders";
 import { getSubscriptionTier, type SubscriptionTier } from "@/app/actions/subscription";
 import { UpgradeToPro } from "@/components/UpgradeToPro";
 import { PricingTableModal } from "@/components/PricingTableModal";
+import { BrandGrid } from "@/components/home/BrandGrid";
 import {
   LayoutDashboard,
   Search,
@@ -75,6 +77,7 @@ const QUANTITY_THRESHOLD = 10; // BASIC: show "10+" if qty >= this, else "Limite
 export type UserPlan = "BASIC" | "PRO";
 
 export default function MarketplaceDashboard() {
+  const searchParams = useSearchParams();
   const { userId } = useAuth();
   const { user } = useUser();
   const isSupplier = (user?.publicMetadata as { role?: string })?.role === "SUPPLIER";
@@ -84,6 +87,7 @@ export default function MarketplaceDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
+  const [initialQueryApplied, setInitialQueryApplied] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [cart, setCart] = useState<CartItemRow[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -102,6 +106,37 @@ export default function MarketplaceDashboard() {
   useEffect(() => {
     refreshCart();
   }, [refreshCart]);
+
+  // Pre-fill and run search when landing with ?q= (e.g. from /search?brand=X)
+  useEffect(() => {
+    if (initialQueryApplied) return;
+    const q = searchParams.get("q")?.trim();
+    setInitialQueryApplied(true);
+    if (!q || q.length < MIN_SEARCH_LENGTH) return;
+    setSearchTerm(q);
+    setError(null);
+    const run = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const params = new URLSearchParams({ q, limit: String(SEARCH_LIMIT) });
+        const res = await fetch(`/api/master-products?${params}`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`Αποτυχία φόρτωσης (${res.status})`);
+        const data = (await res.json()) as MasterProductDTO[] | { error?: string };
+        if (!Array.isArray(data)) throw new Error((data as { error?: string }).error || "Μη έγκυρη απάντηση.");
+        setProducts(data);
+        setHasSearched(true);
+      } catch (e) {
+        console.error(e);
+        setError("Δεν ήταν δυνατή η φόρτωση του τιμοκαταλόγου.");
+        setProducts([]);
+        setHasSearched(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    run();
+  }, [searchParams, initialQueryApplied]);
 
   const handleSearch = useCallback(async () => {
     const query = searchTerm.trim();
@@ -404,6 +439,7 @@ export default function MarketplaceDashboard() {
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <BrandGrid />
           {/* Parts table + mobile cards */}
           <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/90">
             <div className="border-b border-slate-800 px-4 py-4 sm:px-6">

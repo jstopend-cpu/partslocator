@@ -136,7 +136,7 @@ export default function InventoryUniversalImportPage() {
     } finally {
       setSaving(false);
     }
-  }, [profileName, fileType, mapping, priceMultiplier, defaultBrand]);
+  }, [profileName, fileType, mapping, priceMultiplier, defaultBrandId, brands]);
 
   const hasHeaders = headers.length > 0;
 

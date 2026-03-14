@@ -43,6 +43,16 @@ export async function getAllBrands(): Promise<BrandRow[]> {
   return list.map((b) => ({ id: b.id, name: b.name, categoryId: b.categoryId, logoUrl: b.logoUrl ?? null }));
 }
 
+/** Public: brands that have a logo (for homepage "Shop by Brand"). No auth required. */
+export async function getPublicBrandsWithLogos(): Promise<BrandRow[]> {
+  const list = await prisma.brand.findMany({
+    where: { logoUrl: { not: null } },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, categoryId: true, logoUrl: true },
+  });
+  return list.map((b) => ({ id: b.id, name: b.name, categoryId: b.categoryId, logoUrl: b.logoUrl ?? null }));
+}
+
 export async function addBrand(
   name: string,
   categoryId: string,
