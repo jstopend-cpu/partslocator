@@ -107,6 +107,17 @@ export default function MarketplaceDashboardContent() {
     refreshCart();
   }, [refreshCart]);
 
+  // Full reset when URL has no search query (e.g. after "Όλες οι μάρκες" or direct navigation to /)
+  useEffect(() => {
+    const q = searchParams.get("q")?.trim();
+    if (!q) {
+      setSearchTerm("");
+      setProducts([]);
+      setHasSearched(false);
+      setError(null);
+    }
+  }, [searchParams]);
+
   // Pre-fill and run search when landing with ?q= (e.g. from /search?brand=X)
   useEffect(() => {
     if (initialQueryApplied) return;

@@ -52,6 +52,7 @@ export function ShopByBrandSidebar() {
   const handleClearBrand = () => {
     setOpen(false);
     setSearchQuery("");
+    // Navigate to home with no query params; dashboard client will reset search state and clear table
     router.push("/");
   };
 
