@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Upload, Loader2, Package, Building2, History, Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import Link from "next/link";
+import { Upload, Loader2, Package, Building2, History, Plus, Trash2, Pencil, Check, X, FileInput } from "lucide-react";
 import { getInventoryStats } from "@/app/actions/orders";
 import { getLatestUpdateLog, type LatestUpdateLog } from "@/app/actions/update-log";
 import {
@@ -283,8 +284,15 @@ export default function AdminInventoryPage() {
 
   return (
     <>
-      <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/98 px-4 py-3 sm:px-6 sm:py-4">
+      <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-950/98 px-4 py-3 sm:px-6 sm:py-4">
         <h1 className="text-lg font-semibold sm:text-xl">Απόθεμα (Inventory)</h1>
+        <Link
+          href="/admin/inventory/universal-import"
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-700 hover:text-slate-200"
+        >
+          <FileInput className="h-4 w-4" />
+          Universal Import
+        </Link>
       </header>
 
       <main className="mx-auto max-w-4xl space-y-6 p-4 sm:space-y-8 sm:p-6">

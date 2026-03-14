@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { ArrowLeft, BarChart3, Package, Loader2, Warehouse, Menu, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Package, Loader2, Warehouse, Menu, X, FileInput, Truck } from "lucide-react";
 
 const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
 
@@ -12,6 +12,8 @@ const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Analytics Dashboard", icon: BarChart3 },
   { href: "/admin/orders", label: "Διαχείριση παραγγελιών", icon: Package },
   { href: "/admin/inventory", label: "Απόθεμα", icon: Warehouse },
+  { href: "/admin/suppliers/dashboard", label: "Προμηθευτές", icon: Truck },
+  { href: "/admin/universal-import", label: "Universal Importer", icon: FileInput },
 ] as const;
 
 export default function AdminLayout({

@@ -119,3 +119,14 @@ model UpdateLog {
   @@index([createdAt])
   @@index([brandId])
 }
+
+// Universal Importer: saved field mappings + options for reuse
+model ImportProfile {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  targetTable String   // MASTER_CATALOG | SUPPLIER_STOCK
+  fileType    String   // CSV | XML | XLSX
+  mapping     Json     // which file column maps to which DB field
+  config      Json     // price multipliers, category defaults, etc.
+  lastUsed    DateTime
+}
