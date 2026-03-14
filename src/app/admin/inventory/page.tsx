@@ -283,11 +283,11 @@ export default function AdminInventoryPage() {
 
   return (
     <>
-      <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/98 px-6 py-4">
-        <h1 className="text-xl font-semibold">Απόθεμα (Inventory)</h1>
+      <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/98 px-4 py-3 sm:px-6 sm:py-4">
+        <h1 className="text-lg font-semibold sm:text-xl">Απόθεμα (Inventory)</h1>
       </header>
 
-      <main className="mx-auto max-w-4xl space-y-8 p-6">
+      <main className="mx-auto max-w-4xl space-y-6 p-4 sm:space-y-8 sm:p-6">
         {/* Top: Catalog Stats */}
         <section>
           <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-slate-500">
@@ -328,15 +328,15 @@ export default function AdminInventoryPage() {
         </section>
 
         {/* Manage Brands */}
-        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6">
           <h2 className="mb-2 text-lg font-semibold text-slate-200">
             Διαχείριση Brands
           </h2>
           <p className="mb-4 text-sm text-slate-500">
             Επίλεξε κατηγορία και πληκτρολόγησε το όνομα του brand για να το προσθέσεις.
           </p>
-          <div className="flex max-w-md flex-wrap items-end gap-3">
-            <div className="min-w-[140px] flex-1">
+          <div className="flex max-w-md flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="w-full sm:min-w-[140px] sm:flex-1">
               <label htmlFor="new-brand-category" className="mb-1.5 block text-xs font-medium text-slate-500">
                 Κατηγορία
               </label>
@@ -352,7 +352,7 @@ export default function AdminInventoryPage() {
                 ))}
               </select>
             </div>
-            <div className="min-w-[140px] flex-1">
+            <div className="w-full sm:min-w-[140px] sm:flex-1">
               <label htmlFor="new-brand-name" className="mb-1.5 block text-xs font-medium text-slate-500">
                 Όνομα brand
               </label>
@@ -369,14 +369,14 @@ export default function AdminInventoryPage() {
               type="button"
               onClick={handleAddBrand}
               disabled={addingBrand || !newBrandCategoryId.trim() || !newBrandName.trim()}
-              className="flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-700 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-600 disabled:opacity-50"
+              className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-700 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-600 disabled:opacity-50 sm:w-auto"
             >
               {addingBrand ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Προσθήκη
             </button>
           </div>
           {newBrandCategoryId && (
-            <div className="mt-4 max-w-md">
+            <div className="mt-4 w-full max-w-md">
               <p className="mb-2 text-xs font-medium text-slate-500">Brands στην κατηγορία</p>
               {manageBrandsList.length === 0 ? (
                 <p className="text-sm text-slate-500">Δεν υπάρχουν ακόμα brands.</p>
@@ -468,14 +468,14 @@ export default function AdminInventoryPage() {
         </section>
 
         {/* Manage Categories */}
-        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6">
           <h2 className="mb-2 text-lg font-semibold text-slate-200">
             Διαχείριση Κατηγοριών
           </h2>
           <p className="mb-4 text-sm text-slate-500">
             Οι κύριες κατηγορίες (AUTO, TRUCKS, MOTO, MARINE) μπορούν να διαγραφούν. Η διαγραφή κατηγορίας διαγράφει και όλα τα brands της.
           </p>
-          <div className="max-w-md">
+          <div className="w-full max-w-md">
             <ul className="space-y-1.5 rounded-lg border border-slate-700/80 bg-slate-800/40 p-2">
               {categories.map((c) => (
                 <li
@@ -561,7 +561,7 @@ export default function AdminInventoryPage() {
         </section>
 
         {/* Master Catalog Update */}
-        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6">
           <h2 className="mb-2 text-lg font-semibold text-slate-200">
             Master Catalog Update
           </h2>
@@ -570,7 +570,7 @@ export default function AdminInventoryPage() {
           </p>
 
           {/* 1st: Category */}
-          <div className="mb-4 max-w-md">
+          <div className="mb-4 w-full max-w-md">
             <label htmlFor="master-category" className="mb-1.5 block text-xs font-medium text-slate-500">
               Κατηγορία <span className="text-amber-500/80">*</span>
             </label>
@@ -588,7 +588,7 @@ export default function AdminInventoryPage() {
           </div>
 
           {/* 2nd: Brand (filtered by category) */}
-          <div className="mb-4 max-w-md">
+          <div className="mb-4 w-full max-w-md">
             <label htmlFor="master-brand" className="mb-1.5 block text-xs font-medium text-slate-500">
               Brand <span className="text-amber-500/80">*</span>
             </label>
@@ -636,7 +636,7 @@ export default function AdminInventoryPage() {
           )}
 
           <label
-            className={`flex max-w-md items-center gap-3 rounded-lg border px-4 py-3 text-sm transition-colors ${
+            className={`flex w-full max-w-md items-center gap-3 rounded-lg border px-4 py-3 text-sm transition-colors ${
               canUploadMaster && !uploadingMaster
                 ? "cursor-pointer border-slate-700 bg-slate-800/50 text-slate-300 hover:border-blue-500/50 hover:bg-slate-800"
                 : "cursor-not-allowed border-slate-700/80 bg-slate-800/40 text-slate-500 opacity-70"
@@ -665,7 +665,7 @@ export default function AdminInventoryPage() {
         </section>
 
         {/* Bottom: Supplier Stock Update */}
-        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-6">
           <h2 className="mb-2 text-lg font-semibold text-slate-200">
             Supplier Stock Update
           </h2>
@@ -678,9 +678,9 @@ export default function AdminInventoryPage() {
             placeholder="Όνομα προμηθευτή (π.χ. Volvo Dealer)"
             value={supplierName}
             onChange={(e) => setSupplierName(e.target.value)}
-            className="mb-4 max-w-md rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500"
+            className="mb-4 w-full max-w-md rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500"
           />
-          <label className="flex max-w-md cursor-pointer items-center gap-3 rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-slate-300 transition-colors hover:border-emerald-500/50 hover:bg-slate-800 disabled:pointer-events-none disabled:opacity-50">
+          <label className="flex w-full max-w-md cursor-pointer items-center gap-3 rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-slate-300 transition-colors hover:border-emerald-500/50 hover:bg-slate-800 disabled:pointer-events-none disabled:opacity-50">
             {uploadingSupplier ? (
               <Loader2 className="h-5 w-5 shrink-0 animate-spin text-emerald-400" />
             ) : (

@@ -90,13 +90,13 @@ export default function AdminDashboardPage() {
 
   return (
     <>
-      <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/98 px-6 py-4">
-        <h1 className="text-xl font-semibold">Admin Dashboard</h1>
+      <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/98 px-4 py-3 sm:px-6 sm:py-4">
+        <h1 className="text-lg font-semibold sm:text-xl">Admin Dashboard</h1>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-6 p-6">
+      <main className="mx-auto max-w-6xl space-y-4 p-4 sm:space-y-6 sm:p-6">
         {/* Quick Stats cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 transition-colors hover:border-slate-700">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-500/40 bg-emerald-500/20 text-emerald-400">
@@ -205,13 +205,13 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Bar chart - Revenue trend */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-          <h2 className="mb-4 text-lg font-semibold text-slate-200">
-            Έσοδα ανά μήνα (Ολοκληρωμένες / Απεσταλμένες παραγγελίες)
+        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-5">
+          <h2 className="mb-3 text-base font-semibold text-slate-200 sm:mb-4 sm:text-lg">
+            Έσοδα ανά μήνα
           </h2>
-          <div className="h-80">
+          <div className="h-[300px] min-h-[200px]">
             {barData.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-slate-500">
+              <div className="flex h-full items-center justify-center text-slate-500 text-sm">
                 Δεν υπάρχουν δεδομένα ακόμα.
               </div>
             ) : (
@@ -221,12 +221,12 @@ export default function AdminDashboardPage() {
                   <XAxis
                     dataKey="month"
                     stroke="#94a3b8"
-                    tick={{ fill: "#e2e8f0", fontSize: 12 }}
+                    tick={{ fill: "#e2e8f0", fontSize: 10 }}
                   />
                   <YAxis
                     stroke="#94a3b8"
-                    tick={{ fill: "#e2e8f0", fontSize: 12 }}
-                    tickFormatter={(v: any) => `${((Number(v) || 0) / 1000).toFixed(0)}k`}
+                    tick={{ fill: "#e2e8f0", fontSize: 10 }}
+                    tickFormatter={(v: unknown) => `${((Number(v) || 0) / 1000).toFixed(0)}k`}
                   />
                   <Tooltip
                     contentStyle={{
@@ -235,8 +235,8 @@ export default function AdminDashboardPage() {
                       borderRadius: "8px",
                     }}
                     labelStyle={{ color: "#e2e8f0" }}
-                    formatter={(value: any) => [formatCurrency(Number(value) || 0), "Έσοδα"]}
-                    labelFormatter={(label: any) => label ?? ""}
+                    formatter={(value: unknown) => [formatCurrency(Number(value) || 0), "Έσοδα"]}
+                    labelFormatter={(label: unknown) => String(label ?? "")}
                   />
                   <Bar
                     dataKey="revenue"
@@ -251,13 +251,13 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Pie chart - Order status distribution */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-          <h2 className="mb-4 text-lg font-semibold text-slate-200">
+        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-5">
+          <h2 className="mb-3 text-base font-semibold text-slate-200 sm:mb-4 sm:text-lg">
             Κατανομή παραγγελιών ανά κατάσταση
           </h2>
-          <div className="h-80">
+          <div className="h-[300px] min-h-[200px]">
             {pieData.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-slate-500">
+              <div className="flex h-full items-center justify-center text-slate-500 text-sm">
                 Δεν υπάρχουν δεδομένα ακόμα.
               </div>
             ) : (
@@ -269,7 +269,7 @@ export default function AdminDashboardPage() {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={100}
+                    outerRadius={80}
                     label={({ name, percent }: { name?: string; percent?: number }) =>
                       `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`
                     }
@@ -290,11 +290,11 @@ export default function AdminDashboardPage() {
                       border: "1px solid #475569",
                       borderRadius: "8px",
                     }}
-                    formatter={(value: any) => [Number(value) || 0, "Παραγγελίες"]}
+                    formatter={(value: unknown) => [Number(value) || 0, "Παραγγελίες"]}
                   />
                   <Legend
                     wrapperStyle={{ color: "#e2e8f0" }}
-                    formatter={(value: any) => <span className="text-slate-200">{value ?? ""}</span>}
+                    formatter={(value: unknown) => <span className="text-slate-200 text-xs sm:text-sm">{String(value ?? "")}</span>}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -302,39 +302,53 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Top products */}
+        {/* Top products - table on desktop, cards on mobile */}
         <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50 shadow-sm">
-          <h2 className="border-b border-slate-800 px-6 py-4 text-lg font-semibold text-slate-200">
+          <h2 className="border-b border-slate-800 px-4 py-3 text-base font-semibold text-slate-200 sm:px-6 sm:py-4 sm:text-lg">
             Top Products (πιο παραγγελμένα ανταλλακτικά)
           </h2>
           {!stats?.topProducts.length ? (
-            <p className="py-12 text-center text-slate-500">Δεν υπάρχουν δεδομένα ακόμα.</p>
+            <p className="py-12 text-center text-slate-500 text-sm">Δεν υπάρχουν δεδομένα ακόμα.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-800 bg-slate-800/50 text-left text-xs font-medium uppercase tracking-wider text-slate-400">
-                    <th className="px-6 py-4">#</th>
-                    <th className="px-6 py-4">Κωδικός</th>
-                    <th className="px-6 py-4 text-right">Συνολική ποσότητα</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {stats.topProducts.map((row, idx) => (
-                    <tr
-                      key={row.partNumber}
-                      className="bg-slate-900/30 transition-colors hover:bg-slate-800/30"
-                    >
-                      <td className="px-6 py-4 font-medium text-slate-400">{idx + 1}</td>
-                      <td className="px-6 py-4 font-mono text-slate-200">{row.partNumber}</td>
-                      <td className="px-6 py-4 text-right font-medium text-slate-100">
-                        {row.totalQuantity.toLocaleString()} τμχ
-                      </td>
+            <>
+              <ul className="divide-y divide-slate-800 lg:hidden">
+                {stats.topProducts.map((row, idx) => (
+                  <li
+                    key={row.partNumber}
+                    className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6"
+                  >
+                    <span className="text-sm font-medium text-slate-400">{idx + 1}</span>
+                    <span className="min-w-0 flex-1 font-mono text-sm text-slate-200 truncate">{row.partNumber}</span>
+                    <span className="text-sm font-medium text-slate-100">{row.totalQuantity.toLocaleString()} τμχ</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="hidden overflow-x-auto lg:block">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-800 bg-slate-800/50 text-left text-xs font-medium uppercase tracking-wider text-slate-400">
+                      <th className="px-6 py-4">#</th>
+                      <th className="px-6 py-4">Κωδικός</th>
+                      <th className="px-6 py-4 text-right">Συνολική ποσότητα</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {stats.topProducts.map((row, idx) => (
+                      <tr
+                        key={row.partNumber}
+                        className="bg-slate-900/30 transition-colors hover:bg-slate-800/30"
+                      >
+                        <td className="px-6 py-4 font-medium text-slate-400">{idx + 1}</td>
+                        <td className="px-6 py-4 font-mono text-slate-200">{row.partNumber}</td>
+                        <td className="px-6 py-4 text-right font-medium text-slate-100">
+                          {row.totalQuantity.toLocaleString()} τμχ
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </main>

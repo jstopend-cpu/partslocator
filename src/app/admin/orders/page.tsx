@@ -16,6 +16,14 @@ const STATUS_OPTIONS = [
   { value: "CANCELLED", label: "Ακυρωμένη" },
 ] as const;
 
+const STATUS_BADGE_CLASS: Record<string, string> = {
+  PENDING: "border-amber-500/50 bg-amber-500/15 text-amber-300",
+  CONFIRMED: "border-blue-500/50 bg-blue-500/15 text-blue-300",
+  SHIPPED: "border-emerald-500/50 bg-emerald-500/15 text-emerald-300",
+  COMPLETED: "border-slate-500/50 bg-slate-500/15 text-slate-300",
+  CANCELLED: "border-red-500/50 bg-red-500/15 text-red-300",
+};
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("el-GR", {
     style: "currency",
@@ -87,31 +95,75 @@ export default function AdminOrdersPage() {
 
   return (
     <>
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-800 bg-slate-950/98 px-6 py-4">
-        <h1 className="text-xl font-semibold">Διαχείριση παραγγελιών</h1>
+      <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-950/98 px-4 py-3 sm:px-6 sm:py-4">
+        <h1 className="text-lg font-semibold sm:text-xl">Διαχείριση παραγγελιών</h1>
         <button
           type="button"
           onClick={() => exportToCsv(orders)}
           disabled={orders.length === 0}
-          className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-300 transition-colors hover:border-emerald-500/50 hover:text-emerald-300 disabled:opacity-50 disabled:pointer-events-none"
+          className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm text-slate-300 transition-colors hover:border-emerald-500/50 hover:text-emerald-300 disabled:opacity-50 disabled:pointer-events-none"
         >
           <Download className="h-4 w-4" />
-          Export to CSV
+          Export CSV
         </button>
       </header>
 
-      <main className="mx-auto max-w-6xl p-6">
-        <div className="overflow-hidden rounded-lg border border-slate-800 bg-slate-900/50 shadow-sm">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
-            </div>
-          ) : orders.length === 0 ? (
-            <p className="py-12 text-center text-slate-500">
-              Δεν υπάρχουν παραγγελίες.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
+      <main className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
+          </div>
+        ) : orders.length === 0 ? (
+          <p className="py-12 text-center text-slate-500">Δεν υπάρχουν παραγγελίες.</p>
+        ) : (
+          <>
+            {/* Mobile: cards */}
+            <ul className="space-y-4 lg:hidden">
+              {orders.map((order) => (
+                <li
+                  key={order.id}
+                  className="rounded-xl border border-slate-700 bg-slate-800/50 p-4 shadow-sm"
+                >
+                  <p className="font-mono text-xs text-slate-500 truncate">{order.id}</p>
+                  <p className="mt-1 text-sm text-slate-300">{formatDate(order.createdAt)}</p>
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <span
+                      className={`inline-flex rounded-full border px-3 py-1 text-sm font-medium ${
+                        STATUS_BADGE_CLASS[order.status] ?? "border-slate-600 bg-slate-700/50 text-slate-400"
+                      }`}
+                    >
+                      {STATUS_OPTIONS.find((o) => o.value === order.status)?.label ?? order.status}
+                    </span>
+                    <span className="text-lg font-semibold text-slate-100">
+                      {formatCurrency(order.totalPrice)}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500 truncate">Customer: {order.userId}</p>
+                  <div className="mt-4">
+                    {updatingId === order.id ? (
+                      <div className="flex h-12 items-center justify-center rounded-lg border border-slate-600 bg-slate-800">
+                        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                      </div>
+                    ) : (
+                      <select
+                        value={order.status}
+                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                        className="h-12 w-full min-h-[48px] rounded-lg border border-slate-700 bg-slate-800 px-4 text-base text-slate-100 outline-none focus:border-blue-500"
+                      >
+                        {STATUS_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden overflow-hidden rounded-lg border border-slate-800 bg-slate-900/50 shadow-sm lg:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-800 bg-slate-800/50 text-left text-xs font-medium uppercase tracking-wider text-slate-400">
@@ -128,16 +180,10 @@ export default function AdminOrdersPage() {
                       className="bg-slate-900/30 transition-colors hover:bg-slate-800/30"
                     >
                       <td className="px-6 py-4">
-                        <div className="font-mono text-xs text-slate-500">
-                          {order.id}
-                        </div>
-                        <div className="mt-0.5 text-slate-200">
-                          {formatDate(order.createdAt)}
-                        </div>
+                        <div className="font-mono text-xs text-slate-500">{order.id}</div>
+                        <div className="mt-0.5 text-slate-200">{formatDate(order.createdAt)}</div>
                       </td>
-                      <td className="px-6 py-4 font-mono text-xs text-slate-300">
-                        {order.userId}
-                      </td>
+                      <td className="px-6 py-4 font-mono text-xs text-slate-300">{order.userId}</td>
                       <td className="px-6 py-4 text-right font-medium text-slate-100">
                         {formatCurrency(order.totalPrice)}
                       </td>
@@ -147,10 +193,8 @@ export default function AdminOrdersPage() {
                         ) : (
                           <select
                             value={order.status}
-                            onChange={(e) =>
-                              handleStatusChange(order.id, e.target.value)
-                            }
-                            className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-100 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                            className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none focus:border-blue-500"
                           >
                             {STATUS_OPTIONS.map((opt) => (
                               <option key={opt.value} value={opt.value}>
@@ -165,8 +209,8 @@ export default function AdminOrdersPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </main>
     </>
   );
