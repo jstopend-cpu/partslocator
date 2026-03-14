@@ -9,6 +9,7 @@ import {
   getBrandsByCategory,
   addBrand,
   updateBrandName,
+  updateCategoryName,
   deleteBrand,
   deleteCategory,
   type CategoryRow,
@@ -35,6 +36,9 @@ export default function AdminInventoryPage() {
   const [editingBrandId, setEditingBrandId] = useState<string | null>(null);
   const [editingBrandName, setEditingBrandName] = useState("");
   const [savingBrandId, setSavingBrandId] = useState<string | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
 
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
   const selectedBrand = brands.find((b) => b.id === selectedBrandId);
@@ -154,6 +158,33 @@ export default function AdminInventoryPage() {
       if (selectedBrandId === brandId) setSelectedBrandId("");
     } finally {
       setDeletingBrandId(null);
+    }
+  };
+
+  const handleEditCategory = (c: CategoryRow) => {
+    setEditingCategoryId(c.id);
+    setEditingCategoryName(c.name);
+  };
+
+  const handleCancelEditCategory = () => {
+    setEditingCategoryId(null);
+    setEditingCategoryName("");
+  };
+
+  const handleSaveCategoryName = async () => {
+    if (!editingCategoryId || !editingCategoryName.trim()) return;
+    setSavingCategoryId(editingCategoryId);
+    try {
+      const result = await updateCategoryName(editingCategoryId, editingCategoryName.trim());
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setEditingCategoryId(null);
+      setEditingCategoryName("");
+      getCategories().then(setCategories);
+    } finally {
+      setSavingCategoryId(null);
     }
   };
 
@@ -449,23 +480,80 @@ export default function AdminInventoryPage() {
               {categories.map((c) => (
                 <li
                   key={c.id}
-                  className="flex items-center justify-between gap-2 rounded px-2 py-1.5 text-sm text-slate-200 hover:bg-slate-700/50"
+                  className="flex items-center justify-between gap-2 rounded px-2 py-1.5 text-sm text-slate-200 transition-colors hover:bg-slate-700/50"
                 >
-                  <span>{c.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteCategory(c.id)}
-                    disabled={deletingCategoryId === c.id}
-                    title="Διαγραφή κατηγορίας"
-                    className="rounded p-1 text-red-400/90 transition-colors hover:bg-red-500/20 hover:text-red-300 disabled:opacity-50"
-                    aria-label={`Διαγραφή ${c.name}`}
-                  >
-                    {deletingCategoryId === c.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </button>
+                  {editingCategoryId === c.id ? (
+                    <>
+                      <input
+                        type="text"
+                        value={editingCategoryName}
+                        onChange={(e) => setEditingCategoryName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveCategoryName();
+                          if (e.key === "Escape") handleCancelEditCategory();
+                        }}
+                        className="min-w-0 flex-1 rounded border border-slate-600 bg-slate-800 px-2 py-1 text-slate-100 outline-none transition-colors focus:border-blue-500"
+                        autoFocus
+                        aria-label="Νέο όνομα κατηγορίας"
+                      />
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={handleSaveCategoryName}
+                          disabled={savingCategoryId === c.id || !editingCategoryName.trim()}
+                          title="Αποθήκευση"
+                          className="rounded p-1 text-emerald-400/90 transition-colors hover:bg-emerald-500/20 hover:text-emerald-300 disabled:opacity-50"
+                          aria-label="Αποθήκευση"
+                        >
+                          {savingCategoryId === c.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelEditCategory}
+                          disabled={savingCategoryId === c.id}
+                          title="Ακύρωση"
+                          className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-600 hover:text-slate-200 disabled:opacity-50"
+                          aria-label="Ακύρωση"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => handleEditCategory(c)}
+                          disabled={!!editingCategoryId || deletingCategoryId === c.id}
+                          title="Επεξεργασία"
+                          className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-600 hover:text-slate-200 disabled:opacity-50"
+                          aria-label={`Επεξεργασία ${c.name}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCategory(c.id)}
+                          disabled={deletingCategoryId === c.id || !!editingCategoryId}
+                          title="Διαγραφή κατηγορίας"
+                          className="rounded p-1 text-red-400/90 transition-colors hover:bg-red-500/20 hover:text-red-300 disabled:opacity-50"
+                          aria-label={`Διαγραφή ${c.name}`}
+                        >
+                          {deletingCategoryId === c.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

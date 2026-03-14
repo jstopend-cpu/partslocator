@@ -118,7 +118,7 @@ export async function deleteBrand(
   if (productCount > 0) {
     return {
       ok: false,
-      error: "Cannot delete brand with existing products. Please rename it instead.",
+      error: "Δεν μπορεί να διαγραφεί brand με υπάρχοντα προϊόντα. Παρακαλώ αλλάξτε το όνομά του.",
     };
   }
   try {
@@ -127,6 +127,38 @@ export async function deleteBrand(
   } catch (e) {
     console.error("[deleteBrand]", e);
     return { ok: false, error: "Αποτυχία διαγραφής brand." };
+  }
+}
+
+export async function updateCategoryName(
+  id: string,
+  newName: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { userId } = await auth();
+  if (userId !== ADMIN_USER_ID) {
+    return { ok: false, error: "Μη εξουσιοδοτημένο." };
+  }
+  const trimmedId = id?.trim();
+  const trimmedName = newName?.trim();
+  if (!trimmedId) return { ok: false, error: "Λάθος κατηγορία." };
+  if (!trimmedName) return { ok: false, error: "Το νέο όνομα κατηγορίας είναι υποχρεωτικό." };
+  const category = await prisma.category.findUnique({ where: { id: trimmedId } });
+  if (!category) return { ok: false, error: "Η κατηγορία δεν βρέθηκε." };
+  const existing = await prisma.category.findUnique({
+    where: { name: trimmedName },
+  });
+  if (existing && existing.id !== trimmedId) {
+    return { ok: false, error: "Υπάρχει ήδη κατηγορία με αυτό το όνομα." };
+  }
+  try {
+    await prisma.category.update({
+      where: { id: trimmedId },
+      data: { name: trimmedName },
+    });
+    return { ok: true };
+  } catch (e) {
+    console.error("[updateCategoryName]", e);
+    return { ok: false, error: "Αποτυχία ενημέρωσης ονόματος κατηγορίας." };
   }
 }
 
@@ -139,6 +171,15 @@ export async function deleteCategory(
   }
   const trimmed = id?.trim();
   if (!trimmed) return { ok: false, error: "Λάθος κατηγορία." };
+  const brandCount = await prisma.brand.count({
+    where: { categoryId: trimmed },
+  });
+  if (brandCount > 0) {
+    return {
+      ok: false,
+      error: "Δεν είναι δυνατή η διαγραφή κατηγορίας που περιέχει μάρκες.",
+    };
+  }
   try {
     await prisma.category.delete({ where: { id: trimmed } });
     return { ok: true };
