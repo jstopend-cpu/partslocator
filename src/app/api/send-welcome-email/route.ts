@@ -4,7 +4,7 @@ import prisma from "@/database/client";
 
 export const dynamic = "force-dynamic";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 const FROM_NAME = "PartsLocator";
@@ -24,6 +24,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Missing email." },
         { status: 400 }
+      );
+    }
+
+    if (!resend) {
+      return NextResponse.json(
+        { success: false, error: "Email service is not configured (RESEND_API_KEY missing)." },
+        { status: 503 }
       );
     }
 
