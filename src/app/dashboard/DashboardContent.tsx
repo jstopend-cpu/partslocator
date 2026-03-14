@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
+import { Loader2 } from "lucide-react";
 import DashboardClient from "./DashboardClient";
 import type { DashboardProduct } from "./DashboardClient";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export default function DashboardContent() {
   const router = useRouter();
+  const { isLoaded } = useAuth();
   const searchParams = useSearchParams();
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const search = searchParams.get("q") ?? searchParams.get("search") ?? "";
@@ -88,8 +91,20 @@ export default function DashboardContent() {
     [dashboardData]
   );
 
+  if (!isLoaded) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-500" aria-hidden />
+      </div>
+    );
+  }
+
   if (!isMounted) {
-    return <div className="p-10">Φόρτωση Dashboard...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-500" aria-hidden />
+      </div>
+    );
   }
 
   if (loading) {

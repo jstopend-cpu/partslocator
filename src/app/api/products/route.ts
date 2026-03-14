@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export async function GET(request: NextRequest) {
   try {
