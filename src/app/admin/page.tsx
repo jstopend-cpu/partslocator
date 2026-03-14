@@ -58,9 +58,10 @@ export default function AdminB2BRegistrationsPage() {
   }
 
   if (!result.ok) {
+    const message = "error" in result ? result.error : "Access Denied";
     return (
       <div className="rounded-xl border border-red-900/50 bg-red-950/20 p-4 text-red-300">
-        {result.error}
+        {message}
       </div>
     );
   }
