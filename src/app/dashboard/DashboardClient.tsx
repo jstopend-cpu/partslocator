@@ -81,6 +81,7 @@ export default function DashboardClient({
   onPageChange,
 }: Props) {
   const router = useRouter();
+  const { signOut } = useClerk();
   const [customer, setCustomer] = useState<CustomerSession | null>(null);
   const [products, setProducts] = useState<DashboardProduct[]>(
     Array.isArray(initialProducts) ? initialProducts : []
@@ -166,12 +167,12 @@ export default function DashboardClient({
     };
   }, [router]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (typeof window !== "undefined") {
       window.sessionStorage.removeItem(STORAGE_KEY);
       window.localStorage.removeItem(STORAGE_KEY);
     }
-    signOut?.({ redirectUrl: "/login" });
+    await signOut({ redirectUrl: "/login" });
   };
 
   const filteredProducts = useMemo(() => {
