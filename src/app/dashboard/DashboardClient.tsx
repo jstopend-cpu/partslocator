@@ -382,7 +382,7 @@ export default function DashboardClient({
               Διαχείριση
             </Link>
           )}
-          <UserButton afterSignOutUrl="/login" />
+          <UserButton />
         </header>
 
         <main className="flex-1 overflow-auto bg-slate-950">
