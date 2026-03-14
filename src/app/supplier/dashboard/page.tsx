@@ -120,59 +120,93 @@ export default function SupplierDashboardPage() {
             Δεν υπάρχουν ακόμα παραγγελίες.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-800 bg-slate-800/50 text-xs font-medium uppercase tracking-wider text-slate-400">
-                  <th className="px-4 py-3 sm:px-6">Order ID</th>
-                  <th className="px-4 py-3 sm:px-6">Date</th>
-                  <th className="px-4 py-3 sm:px-6">Customer</th>
-                  <th className="px-4 py-3 sm:px-6">Total</th>
-                  <th className="px-4 py-3 sm:px-6">Status</th>
-                  <th className="px-4 py-3 sm:px-6 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subOrders.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-slate-800/80 transition-colors hover:bg-slate-800/50"
+          <>
+            {/* Mobile: cards */}
+            <ul className="space-y-3 p-4 sm:p-6 md:hidden">
+              {subOrders.map((row) => (
+                <li
+                  key={row.id}
+                  className="rounded-lg border border-slate-700/80 bg-slate-800/50 p-4"
+                >
+                  <p className="font-mono text-xs text-slate-500 truncate">{row.orderId}</p>
+                  <p className="mt-1 text-sm text-slate-300">{formatDate(row.createdAt)}</p>
+                  <p className="mt-0.5 text-sm text-slate-400">{row.customerName ?? "—"}</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-100">
+                    {formatCurrency(row.totalPrice)}
+                  </p>
+                  <span
+                    className={`mt-2 inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                      STATUS_BADGE[row.status] ?? "border-slate-600 bg-slate-700/50 text-slate-400"
+                    }`}
                   >
-                    <td className="px-4 py-3 font-mono text-xs text-slate-500 sm:px-6">
-                      {row.orderId}
-                    </td>
-                    <td className="px-4 py-3 text-slate-300 sm:px-6">
-                      {formatDate(row.createdAt)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-300 sm:px-6">
-                      {row.customerName ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-slate-200 sm:px-6">
-                      {formatCurrency(row.totalPrice)}
-                    </td>
-                    <td className="px-4 py-3 sm:px-6">
-                      <span
-                        className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                          STATUS_BADGE[row.status] ?? "border-slate-600 bg-slate-700/50 text-slate-400"
-                        }`}
-                      >
-                        {STATUS_LABELS[row.status] ?? row.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right sm:px-6">
-                      <Link
-                        href={`/supplier/orders/${row.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-blue-500/50 hover:bg-blue-500/15 hover:text-blue-300"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        Order Details
-                      </Link>
-                    </td>
+                    {STATUS_LABELS[row.status] ?? row.status}
+                  </span>
+                  <Link
+                    href={`/supplier/orders/${row.id}`}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:border-blue-500/50 hover:bg-blue-500/15 hover:text-blue-300"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Order Details
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-800/50 text-xs font-medium uppercase tracking-wider text-slate-400">
+                    <th className="px-4 py-3 sm:px-6">Order ID</th>
+                    <th className="px-4 py-3 sm:px-6">Date</th>
+                    <th className="px-4 py-3 sm:px-6">Customer</th>
+                    <th className="px-4 py-3 sm:px-6">Total</th>
+                    <th className="px-4 py-3 sm:px-6">Status</th>
+                    <th className="px-4 py-3 sm:px-6 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {subOrders.map((row) => (
+                    <tr
+                      key={row.id}
+                      className="border-b border-slate-800/80 transition-colors hover:bg-slate-800/50"
+                    >
+                      <td className="px-4 py-3 font-mono text-xs text-slate-500 sm:px-6">
+                        {row.orderId}
+                      </td>
+                      <td className="px-4 py-3 text-slate-300 sm:px-6">
+                        {formatDate(row.createdAt)}
+                      </td>
+                      <td className="px-4 py-3 text-slate-300 sm:px-6">
+                        {row.customerName ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-slate-200 sm:px-6">
+                        {formatCurrency(row.totalPrice)}
+                      </td>
+                      <td className="px-4 py-3 sm:px-6">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                            STATUS_BADGE[row.status] ?? "border-slate-600 bg-slate-700/50 text-slate-400"
+                          }`}
+                        >
+                          {STATUS_LABELS[row.status] ?? row.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right sm:px-6">
+                        <Link
+                          href={`/supplier/orders/${row.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-blue-500/50 hover:bg-blue-500/15 hover:text-blue-300"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          Order Details
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </>

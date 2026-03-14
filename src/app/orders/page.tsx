@@ -78,7 +78,7 @@ export default function OrdersPage() {
         <UserButton appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
       </header>
 
-      <main className="mx-auto max-w-4xl space-y-4 p-4 sm:space-y-6 sm:p-6">
+      <main className="mx-auto max-w-4xl space-y-4 overflow-x-hidden p-4 sm:space-y-6 sm:p-6">
         {loading ? (
           <p className="text-slate-500">Φόρτωση...</p>
         ) : orders.length === 0 ? (

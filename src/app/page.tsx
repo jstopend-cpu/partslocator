@@ -25,6 +25,7 @@ import {
   ShieldCheck,
   Menu,
   Truck,
+  Lock,
 } from "lucide-react";
 
 const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
@@ -354,13 +355,13 @@ export default function MarketplaceDashboard() {
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
             <Link
               href="/cart"
-              className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:border-blue-500 hover:text-blue-300"
+              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:border-blue-500 hover:text-blue-300"
               aria-label="Καλάθι"
             >
               <ShoppingCart className="h-5 w-5" />
               {cart.length > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-semibold text-white">
-                  {cart.reduce((s, i) => s + i.quantity, 0)}
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-semibold text-white">
+                  {cart.reduce((s, i) => s + i.quantity, 0) > 99 ? "99+" : cart.reduce((s, i) => s + i.quantity, 0)}
                 </span>
               )}
             </Link>
@@ -374,7 +375,7 @@ export default function MarketplaceDashboard() {
             {isSupplier && (
               <Link
                 href="/supplier/dashboard"
-                className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200"
+                className="hidden md:flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200"
                 title="Supplier Panel"
               >
                 <Truck className="h-4 w-4 shrink-0" />
@@ -384,7 +385,7 @@ export default function MarketplaceDashboard() {
             {userId === ADMIN_USER_ID && (
               <Link
                 href="/admin/dashboard"
-                className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200"
+                className="hidden md:flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200"
                 title="Διαχείριση (Admin)"
               >
                 <ShieldCheck className="h-4 w-4 shrink-0" />
@@ -611,16 +612,17 @@ export default function MarketplaceDashboard() {
                                             key={stock.id}
                                             className="border-b border-slate-800/60 last:border-0"
                                           >
-                                            <td className="px-2 py-2 text-slate-200">
+                                            <td className="min-w-[100px] px-2 py-2 text-slate-200">
                                               {showSupplier ? (
                                                 stock.supplier?.name || "—"
                                               ) : (
-                                                <span className="select-none blur-sm" title="Upgrade to PRO to see supplier">
-                                                  {stock.supplier?.name || "—"}
+                                                <span className="inline-flex min-w-[4rem] max-w-[8rem] items-center gap-1.5">
+                                                  <span className="select-none blur-sm truncate" title="Upgrade to PRO to see supplier">
+                                                    {stock.supplier?.name || "—"}
+                                                  </span>
+                                                  <Lock className="h-3.5 w-3.5 shrink-0 text-amber-400" aria-hidden />
+                                                  <span className="shrink-0 text-[10px] text-amber-400">Pro</span>
                                                 </span>
-                                              )}
-                                              {!showSupplier && (
-                                                <span className="ml-1 text-[10px] text-amber-400">Hidden</span>
                                               )}
                                             </td>
                                             <td
@@ -643,9 +645,13 @@ export default function MarketplaceDashboard() {
                                                 </button>
                                               )}
                                             </td>
-                                            <td className="px-2 py-2 text-slate-200">
+                                            <td className="min-w-[80px] px-2 py-2 text-slate-200">
                                               {subscriptionTier === "FREE" ? (
-                                                "Available"
+                                                <span className="inline-flex items-center gap-1.5">
+                                                  <Lock className="h-3.5 w-3.5 shrink-0 text-amber-400" aria-hidden />
+                                                  <span className="text-[10px] text-amber-400">Pro</span>
+                                                  <span>Available</span>
+                                                </span>
                                               ) : (
                                                 quantityLabel
                                               )}
