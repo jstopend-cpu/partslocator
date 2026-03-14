@@ -33,6 +33,22 @@ export default function LandingPage() {
       />
       <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 to-slate-950" />
 
+      {/* Top nav: Login + Sign Up */}
+      <nav className="relative z-10 flex justify-end gap-3 px-4 py-4 sm:px-6">
+        <Link
+          href="/sign-in"
+          className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800/80 hover:text-white"
+        >
+          Σύνδεση
+        </Link>
+        <Link
+          href="/register"
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+        >
+          Εγγραφή
+        </Link>
+      </nav>
+
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:py-32">
         {/* Hero */}
         <section className="text-center">
@@ -63,6 +79,12 @@ export default function LandingPage() {
               className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-8 py-4 text-base font-semibold text-white shadow-[0_0_25px_rgba(99,102,241,0.4)] transition-all hover:bg-indigo-500 hover:shadow-[0_0_35px_rgba(99,102,241,0.55)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
             >
               Δωρεάν Εγγραφή
+            </Link>
+            <Link
+              href="/sign-in"
+              className="inline-flex items-center justify-center rounded-xl border-2 border-slate-600 bg-transparent px-8 py-4 text-base font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+            >
+              Σύνδεση
             </Link>
             <Link
               href="/contact"

@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+// Landing (/), auth, register, and public APIs are public; /dashboard, /admin, etc. require auth
 const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
