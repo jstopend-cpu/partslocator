@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import {
   Upload,
@@ -10,6 +10,8 @@ import {
   Save,
   CheckCircle,
 } from "lucide-react";
+import { BrandSelect } from "@/components/admin/BrandSelect";
+import { getAllBrands, type BrandRow } from "@/app/actions/categories";
 
 const SYSTEM_FIELDS = [
   { key: "partNumber", label: "Part Number" },
@@ -28,12 +30,17 @@ export default function InventoryUniversalImportPage() {
   const [fileType, setFileType] = useState<"csv" | "xml" | "">("");
   const [mapping, setMapping] = useState<MappingState>({});
   const [priceMultiplier, setPriceMultiplier] = useState("1");
-  const [defaultBrand, setDefaultBrand] = useState("");
+  const [defaultBrandId, setDefaultBrandId] = useState("");
+  const [brands, setBrands] = useState<BrandRow[]>([]);
   const [profileName, setProfileName] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    getAllBrands().then(setBrands);
+  }, []);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -117,7 +124,7 @@ export default function InventoryUniversalImportPage() {
           mapping: mapping as Record<string, string>,
           config: {
             priceMultiplier: Number(priceMultiplier) || 1,
-            defaultBrand: defaultBrand.trim() || undefined,
+            defaultBrand: (brands.find((b) => b.id === defaultBrandId)?.name?.trim()) || undefined,
           },
         }),
       });
@@ -276,15 +283,14 @@ export default function InventoryUniversalImportPage() {
                 </p>
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-slate-500">
-                  Fixed value (default brand)
-                </label>
-                <input
-                  type="text"
-                  value={defaultBrand}
-                  onChange={(e) => setDefaultBrand(e.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-slate-200 placeholder-slate-500 focus:border-blue-500 focus:outline-none"
-                  placeholder="e.g. Intercars"
+                <BrandSelect
+                  id="default-brand"
+                  brands={brands}
+                  selectedBrandId={defaultBrandId}
+                  onSelect={setDefaultBrandId}
+                  placeholder="Optional default brand (when not in file)"
+                  label="Fixed value (default brand)"
+                  listMaxHeight={240}
                 />
                 <p className="mt-1 text-xs text-slate-500">
                   Used when brand is not in the file

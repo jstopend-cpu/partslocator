@@ -18,7 +18,7 @@ export async function getCategories(): Promise<CategoryRow[]> {
   return list.map((c) => ({ id: c.id, name: c.name }));
 }
 
-export type BrandRow = { id: string; name: string; categoryId: string };
+export type BrandRow = { id: string; name: string; categoryId: string; logoUrl: string | null };
 
 export async function getBrandsByCategory(categoryId: string): Promise<BrandRow[]> {
   const { userId } = await auth();
@@ -28,13 +28,25 @@ export async function getBrandsByCategory(categoryId: string): Promise<BrandRow[
   const list = await prisma.brand.findMany({
     where: { categoryId: trimmed },
     orderBy: { name: "asc" },
+    select: { id: true, name: true, categoryId: true, logoUrl: true },
   });
-  return list.map((b) => ({ id: b.id, name: b.name, categoryId: b.categoryId }));
+  return list.map((b) => ({ id: b.id, name: b.name, categoryId: b.categoryId, logoUrl: b.logoUrl ?? null }));
+}
+
+export async function getAllBrands(): Promise<BrandRow[]> {
+  const { userId } = await auth();
+  if (userId !== ADMIN_USER_ID) return [];
+  const list = await prisma.brand.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, categoryId: true, logoUrl: true },
+  });
+  return list.map((b) => ({ id: b.id, name: b.name, categoryId: b.categoryId, logoUrl: b.logoUrl ?? null }));
 }
 
 export async function addBrand(
   name: string,
   categoryId: string,
+  logoUrl?: string | null,
 ): Promise<{ ok: true; brandId: string } | { ok: false; error: string }> {
   const { userId } = await auth();
   if (userId !== ADMIN_USER_ID) {
@@ -42,6 +54,7 @@ export async function addBrand(
   }
   const trimmedName = name?.trim();
   const trimmedCategoryId = categoryId?.trim();
+  const trimmedLogoUrl = logoUrl?.trim() || null;
   if (!trimmedName) {
     return { ok: false, error: "Το όνομα brand είναι υποχρεωτικό." };
   }
@@ -59,8 +72,8 @@ export async function addBrand(
       where: {
         name_categoryId: { name: trimmedName, categoryId: trimmedCategoryId },
       },
-      update: {},
-      create: { name: trimmedName, categoryId: trimmedCategoryId },
+      update: { logoUrl: trimmedLogoUrl },
+      create: { name: trimmedName, categoryId: trimmedCategoryId, logoUrl: trimmedLogoUrl },
     });
     return { ok: true, brandId: brand.id };
   } catch (e) {
@@ -72,6 +85,7 @@ export async function addBrand(
 export async function updateBrandName(
   id: string,
   newName: string,
+  logoUrl?: string | null,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { userId } = await auth();
   if (userId !== ADMIN_USER_ID) {
@@ -79,6 +93,7 @@ export async function updateBrandName(
   }
   const trimmedId = id?.trim();
   const trimmedName = newName?.trim();
+  const trimmedLogoUrl = logoUrl === undefined ? undefined : (logoUrl?.trim() || null);
   if (!trimmedId) return { ok: false, error: "Λάθος brand." };
   if (!trimmedName) return { ok: false, error: "Το νέο όνομα brand είναι υποχρεωτικό." };
   const brand = await prisma.brand.findUnique({ where: { id: trimmedId } });
@@ -92,7 +107,7 @@ export async function updateBrandName(
   try {
     await prisma.brand.update({
       where: { id: trimmedId },
-      data: { name: trimmedName },
+      data: { name: trimmedName, ...(trimmedLogoUrl !== undefined && { logoUrl: trimmedLogoUrl }) },
     });
     return { ok: true };
   } catch (e) {

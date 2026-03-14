@@ -140,6 +140,7 @@ model Brand {
   id         String   @id @default(cuid())
   name       String
   categoryId String
+  logoUrl    String?  // optional image URL for brand logo
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   updateLogs UpdateLog[]
 

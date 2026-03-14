@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Upload, Loader2, Package, Building2, History, Plus, Trash2, Pencil, Check, X, FileInput } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
+import { BrandSelect } from "@/components/admin/BrandSelect";
 import { getInventoryStats } from "@/app/actions/orders";
 import { getLatestUpdateLog, type LatestUpdateLog } from "@/app/actions/update-log";
 import {
@@ -30,12 +32,14 @@ export default function AdminInventoryPage() {
   const [latestUpdate, setLatestUpdate] = useState<LatestUpdateLog>(null);
   const [newBrandCategoryId, setNewBrandCategoryId] = useState<string>("");
   const [newBrandName, setNewBrandName] = useState("");
+  const [newBrandLogoUrl, setNewBrandLogoUrl] = useState("");
   const [addingBrand, setAddingBrand] = useState(false);
   const [manageBrandsList, setManageBrandsList] = useState<BrandRow[]>([]);
   const [deletingBrandId, setDeletingBrandId] = useState<string | null>(null);
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
   const [editingBrandId, setEditingBrandId] = useState<string | null>(null);
   const [editingBrandName, setEditingBrandName] = useState("");
+  const [editingBrandLogoUrl, setEditingBrandLogoUrl] = useState("");
   const [savingBrandId, setSavingBrandId] = useState<string | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
@@ -102,12 +106,13 @@ export default function AdminInventoryPage() {
     }
     setAddingBrand(true);
     try {
-      const result = await addBrand(newBrandName.trim(), newBrandCategoryId);
+      const result = await addBrand(newBrandName.trim(), newBrandCategoryId, newBrandLogoUrl.trim() || null);
       if (!result.ok) {
         alert(result.error);
         return;
       }
       setNewBrandName("");
+      setNewBrandLogoUrl("");
       getBrandsByCategory(newBrandCategoryId).then(setManageBrandsList);
       if (newBrandCategoryId === selectedCategoryId) {
         getBrandsByCategory(selectedCategoryId).then(setBrands);
@@ -120,24 +125,27 @@ export default function AdminInventoryPage() {
   const handleEditBrand = (b: BrandRow) => {
     setEditingBrandId(b.id);
     setEditingBrandName(b.name);
+    setEditingBrandLogoUrl(b.logoUrl ?? "");
   };
 
   const handleCancelEditBrand = () => {
     setEditingBrandId(null);
     setEditingBrandName("");
+    setEditingBrandLogoUrl("");
   };
 
   const handleSaveBrandName = async () => {
     if (!editingBrandId || !editingBrandName.trim()) return;
     setSavingBrandId(editingBrandId);
     try {
-      const result = await updateBrandName(editingBrandId, editingBrandName.trim());
+      const result = await updateBrandName(editingBrandId, editingBrandName.trim(), editingBrandLogoUrl.trim() || null);
       if (!result.ok) {
         alert(result.error);
         return;
       }
       setEditingBrandId(null);
       setEditingBrandName("");
+      setEditingBrandLogoUrl("");
       if (newBrandCategoryId) getBrandsByCategory(newBrandCategoryId).then(setManageBrandsList);
       if (selectedCategoryId) getBrandsByCategory(selectedCategoryId).then(setBrands);
     } finally {
@@ -373,6 +381,19 @@ export default function AdminInventoryPage() {
                 className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:border-blue-500 focus:outline-none"
               />
             </div>
+            <div className="w-full sm:min-w-[200px] sm:flex-1">
+              <label htmlFor="new-brand-logo" className="mb-1.5 block text-xs font-medium text-slate-500">
+                Logo URL (προαιρετικό)
+              </label>
+              <input
+                id="new-brand-logo"
+                type="url"
+                value={newBrandLogoUrl}
+                onChange={(e) => setNewBrandLogoUrl(e.target.value)}
+                placeholder="https://..."
+                className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
             <button
               type="button"
               onClick={handleAddBrand}
@@ -384,92 +405,116 @@ export default function AdminInventoryPage() {
             </button>
           </div>
           {newBrandCategoryId && (
-            <div className="mt-4 w-full max-w-md">
+            <div className="mt-4 w-full max-w-2xl overflow-x-auto">
               <p className="mb-2 text-xs font-medium text-slate-500">Brands στην κατηγορία</p>
               {manageBrandsList.length === 0 ? (
                 <p className="text-sm text-slate-500">Δεν υπάρχουν ακόμα brands.</p>
               ) : (
-                <ul className="space-y-1.5 rounded-lg border border-slate-700/80 bg-slate-800/40 p-2">
-                  {manageBrandsList.map((b) => (
-                    <li
-                      key={b.id}
-                      className="flex items-center justify-between gap-2 rounded px-2 py-1.5 text-sm text-slate-200 transition-colors hover:bg-slate-700/50"
-                    >
-                      {editingBrandId === b.id ? (
-                        <>
-                          <input
-                            type="text"
-                            value={editingBrandName}
-                            onChange={(e) => setEditingBrandName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") handleSaveBrandName();
-                              if (e.key === "Escape") handleCancelEditBrand();
-                            }}
-                            className="min-w-0 flex-1 rounded border border-slate-600 bg-slate-800 px-2 py-1 text-slate-100 outline-none transition-colors focus:border-blue-500"
-                            autoFocus
-                            aria-label="Νέο όνομα brand"
-                          />
-                          <div className="flex shrink-0 items-center gap-0.5">
-                            <button
-                              type="button"
-                              onClick={handleSaveBrandName}
-                              disabled={savingBrandId === b.id || !editingBrandName.trim()}
-                              title="Αποθήκευση"
-                              className="rounded p-1 text-emerald-400/90 transition-colors hover:bg-emerald-500/20 hover:text-emerald-300 disabled:opacity-50"
-                              aria-label="Αποθήκευση"
-                            >
-                              {savingBrandId === b.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Check className="h-4 w-4" />
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleCancelEditBrand}
-                              disabled={savingBrandId === b.id}
-                              title="Ακύρωση"
-                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-600 hover:text-slate-200 disabled:opacity-50"
-                              aria-label="Ακύρωση"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <span className="min-w-0 flex-1 truncate">{b.name}</span>
-                          <div className="flex shrink-0 items-center gap-0.5">
-                            <button
-                              type="button"
-                              onClick={() => handleEditBrand(b)}
-                              disabled={!!editingBrandId || deletingBrandId === b.id}
-                              title="Επεξεργασία"
-                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-600 hover:text-slate-200 disabled:opacity-50"
-                              aria-label={`Επεξεργασία ${b.name}`}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteBrand(b.id)}
-                              disabled={deletingBrandId === b.id || !!editingBrandId}
-                              title="Διαγραφή brand"
-                              className="rounded p-1 text-red-400/90 transition-colors hover:bg-red-500/20 hover:text-red-300 disabled:opacity-50"
-                              aria-label={`Διαγραφή ${b.name}`}
-                            >
-                              {deletingBrandId === b.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                <table className="w-full min-w-[400px] text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-700 text-xs font-medium uppercase text-slate-500">
+                      <th className="py-2 pr-3">Logo</th>
+                      <th className="py-2 pr-3">Όνομα</th>
+                      <th className="py-2 pr-3">Logo URL</th>
+                      <th className="w-24 py-2 text-right">Ενέργειες</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {manageBrandsList.map((b) => (
+                      <tr
+                        key={b.id}
+                        className="border-b border-slate-700/60 last:border-0"
+                      >
+                        <td className="py-2 pr-3">
+                          <BrandLogo logoUrl={b.logoUrl} name={b.name} size={24} />
+                        </td>
+                        <td className="py-2 pr-3">
+                          {editingBrandId === b.id ? (
+                            <input
+                              type="text"
+                              value={editingBrandName}
+                              onChange={(e) => setEditingBrandName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveBrandName();
+                                if (e.key === "Escape") handleCancelEditBrand();
+                              }}
+                              className="w-full min-w-0 max-w-[140px] rounded border border-slate-600 bg-slate-800 px-2 py-1 text-slate-100 outline-none focus:border-blue-500"
+                              autoFocus
+                              aria-label="Νέο όνομα brand"
+                            />
+                          ) : (
+                            <span className="font-medium text-slate-200">{b.name}</span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-3">
+                          {editingBrandId === b.id ? (
+                            <input
+                              type="url"
+                              value={editingBrandLogoUrl}
+                              onChange={(e) => setEditingBrandLogoUrl(e.target.value)}
+                              placeholder="https://..."
+                              className="w-full min-w-0 max-w-[200px] rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500"
+                              aria-label="Logo URL"
+                            />
+                          ) : (
+                            <span className="truncate text-xs text-slate-500 max-w-[180px] block">
+                              {b.logoUrl ? "Ορισμένο" : "—"}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 text-right">
+                          {editingBrandId === b.id ? (
+                            <div className="flex justify-end gap-0.5">
+                              <button
+                                type="button"
+                                onClick={handleSaveBrandName}
+                                disabled={savingBrandId === b.id || !editingBrandName.trim()}
+                                title="Αποθήκευση"
+                                className="rounded p-1 text-emerald-400/90 hover:bg-emerald-500/20 hover:text-emerald-300 disabled:opacity-50"
+                                aria-label="Αποθήκευση"
+                              >
+                                {savingBrandId === b.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleCancelEditBrand}
+                                disabled={savingBrandId === b.id}
+                                title="Ακύρωση"
+                                className="rounded p-1 text-slate-400 hover:bg-slate-600 hover:text-slate-200 disabled:opacity-50"
+                                aria-label="Ακύρωση"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end gap-0.5">
+                              <button
+                                type="button"
+                                onClick={() => handleEditBrand(b)}
+                                disabled={!!editingBrandId || deletingBrandId === b.id}
+                                title="Επεξεργασία"
+                                className="rounded p-1 text-slate-400 hover:bg-slate-600 hover:text-slate-200 disabled:opacity-50"
+                                aria-label={`Επεξεργασία ${b.name}`}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteBrand(b.id)}
+                                disabled={deletingBrandId === b.id || !!editingBrandId}
+                                title="Διαγραφή brand"
+                                className="rounded p-1 text-red-400/90 hover:bg-red-500/20 hover:text-red-300 disabled:opacity-50"
+                                aria-label={`Διαγραφή ${b.name}`}
+                              >
+                                {deletingBrandId === b.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
           )}
@@ -597,21 +642,20 @@ export default function AdminInventoryPage() {
 
           {/* 2nd: Brand (filtered by category) */}
           <div className="mb-4 w-full max-w-md">
-            <label htmlFor="master-brand" className="mb-1.5 block text-xs font-medium text-slate-500">
-              Brand <span className="text-amber-500/80">*</span>
-            </label>
-            <select
+            <BrandSelect
               id="master-brand"
-              value={selectedBrandId}
-              onChange={(e) => setSelectedBrandId(e.target.value)}
+              brands={brands}
+              selectedBrandId={selectedBrandId}
+              onSelect={setSelectedBrandId}
               disabled={!selectedCategoryId}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2.5 text-sm text-slate-200 focus:border-blue-500 focus:outline-none disabled:opacity-60"
-            >
-              <option value="">Επίλεξε brand...</option>
-              {brands.map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
+              placeholder="Επίλεξε brand..."
+              label={
+                <>
+                  Brand <span className="text-amber-500/80">*</span>
+                </>
+              }
+              listMaxHeight={240}
+            />
           </div>
 
           {/* Latest Update (for selected brand) */}
