@@ -7,7 +7,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { getPublicBrandsWithLogos, type BrandRow } from "@/app/actions/categories";
 
 const SHOW_SEARCH_ABOVE = 8;
-const LOGO_SIZE = 20;
+const LOGO_SIZE = 32;
 const LIST_MAX_HEIGHT = 280;
 
 export function ShopByBrandSidebar() {

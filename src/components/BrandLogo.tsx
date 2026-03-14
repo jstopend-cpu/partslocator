@@ -23,28 +23,26 @@ export function BrandLogo({
   const [imgError, setImgError] = useState(false);
   const showImg = logoUrl && !imgError;
 
-  const sizeClass = `h-[${size}px] w-[${size}px]`;
-  const roundedClass =
-    rounded === "full" ? "rounded-full" : rounded === "lg" ? "rounded-lg" : "rounded";
-
   if (showImg) {
     return (
-      <img
-        src={logoUrl}
-        alt=""
-        role="presentation"
-        width={size}
-        height={size}
-        className={`shrink-0 object-cover border border-slate-600/80 bg-slate-800 ${roundedClass} ${className}`}
+      <div
+        className={`flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-white p-1 ${className}`}
         style={{ width: size, height: size }}
-        onError={() => setImgError(true)}
-      />
+      >
+        <img
+          src={logoUrl}
+          alt=""
+          role="presentation"
+          className="h-full w-full object-contain"
+          onError={() => setImgError(true)}
+        />
+      </div>
     );
   }
 
   return (
     <span
-      className={`flex shrink-0 items-center justify-center border border-slate-600/80 bg-slate-700/80 text-slate-400 ${roundedClass} ${className}`}
+      className={`flex shrink-0 items-center justify-center rounded-md border border-slate-600/80 bg-slate-700/80 text-slate-400 ${className}`}
       style={{ width: size, height: size }}
       title={name}
       aria-hidden

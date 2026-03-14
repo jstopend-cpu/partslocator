@@ -14,10 +14,10 @@ type UpgradeToProProps = {
 };
 
 const PRO_FEATURES = [
-  "Exact supplier prices & quantities",
-  "Supplier names & best-offer details",
-  "Shipping estimates",
-  "Special discounted prices",
+  "Ακριβείς τιμές προμηθευτών & ποσότητες",
+  "Ονόματα προμηθευτών & λεπτομέρειες καλύτερης προσφοράς",
+  "Εκτιμήσεις χρόνου παράδοσης",
+  "Ειδικές εκπτωτικές τιμές",
 ];
 
 export function UpgradeToPro({ variant = "card", reason, className = "", onUpgradeClick }: UpgradeToProProps) {
@@ -56,9 +56,9 @@ export function UpgradeToPro({ variant = "card", reason, className = "", onUpgra
           <Sparkles className="h-6 w-6" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-slate-100">Upgrade to PRO</h3>
+          <h3 className="text-lg font-semibold text-slate-100">Αναβάθμιση σε PRO</h3>
           <p className="text-sm text-slate-400">
-            Unlock exact prices, quantities, supplier names and shipping estimates.
+            Ξεκλειδώστε ακριβείς τιμές, διαθεσιμότητες, ονόματα προμηθευτών και εκτιμήσεις αποστολής.
           </p>
         </div>
       </div>
@@ -75,7 +75,7 @@ export function UpgradeToPro({ variant = "card", reason, className = "", onUpgra
         onClick={handleClick}
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/20 py-2.5 text-sm font-medium text-amber-200 transition-colors hover:bg-amber-500/30"
       >
-        Upgrade to PRO
+        Αναβάθμιση σε PRO
       </button>
     </div>
   );
