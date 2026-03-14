@@ -136,10 +136,6 @@ export default function DashboardContent() {
     );
   }
 
-  if (loading && search.trim()) {
-    return <div className="p-10">Φόρτωση...</div>;
-  }
-
   if (error) {
     return (
       <div className="p-10">
@@ -155,17 +151,6 @@ export default function DashboardContent() {
     );
   }
 
-  /* Only show "no products" when user has searched and got 0 results. Otherwise render DashboardClient (initial state or with data). */
-  if (safeProductsList.length === 0 && search.trim()) {
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 py-12">
-        <p className="max-w-md text-center text-slate-300">
-          Δεν βρέθηκαν προϊόντα για &quot;{search}&quot;. Δοκίμαστε άλλο όρο αναζήτησης.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <DashboardClient
       initialProducts={safeProductsList}
@@ -174,6 +159,7 @@ export default function DashboardContent() {
       totalCount={typeof totalCount === "number" ? totalCount : 0}
       suppliers={Array.isArray(suppliers) ? suppliers : []}
       searchTerm={search}
+      isLoading={loading}
       onSearchChange={(q) => {
         const query = q.trim() ? `?page=1&q=${encodeURIComponent(q.trim())}` : "";
         router.replace(`/dashboard${query}`);

@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Settings,
+  Loader2,
 } from "lucide-react";
 
 type CustomerSession = {
@@ -94,6 +95,7 @@ type Props = {
   totalCount: number;
   suppliers: string[];
   searchTerm?: string;
+  isLoading?: boolean;
   onSearchChange?: (q: string) => void;
   onPageChange?: (newPage: number) => void;
 };
@@ -105,6 +107,7 @@ export default function DashboardClient({
   totalCount,
   suppliers,
   searchTerm: searchTermProp = "",
+  isLoading = false,
   onSearchChange,
   onPageChange,
 }: Props) {
@@ -491,8 +494,13 @@ export default function DashboardClient({
               </div>
             </div>
           ) : (
-          <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8 lg:flex-row">
-            <div className="flex-1">
+          <div className="relative mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8 lg:flex-row">
+            {isLoading && (
+              <div className="absolute left-0 right-0 top-0 z-10 h-0.5 overflow-hidden rounded-full bg-slate-800">
+                <div className="loading-bar h-full min-w-[30%] rounded-full bg-emerald-500" />
+              </div>
+            )}
+            <div className="flex-1 transition-opacity duration-300 ease-out">
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 shadow-xl backdrop-blur">
             <div className="space-y-6 p-6 md:p-8">
             <section className="space-y-4">
@@ -507,7 +515,7 @@ export default function DashboardClient({
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
               <div className="relative flex-1">
                 <Search
                   className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
@@ -521,6 +529,11 @@ export default function DashboardClient({
                   onChange={(e) => handleSearchChange(e.target.value)}
                 />
               </div>
+              {isLoading && (
+                <div className="flex shrink-0 items-center justify-center" aria-hidden>
+                  <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
+                </div>
+              )}
               {/* Brand dropdown - only when results are displayed */}
               <div className="flex w-full items-center gap-2 text-xs text-slate-400 md:w-56">
                 <span className="whitespace-nowrap">Μάρκα:</span>
