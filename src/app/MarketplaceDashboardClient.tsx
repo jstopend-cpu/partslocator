@@ -368,39 +368,7 @@ export default function MarketplaceDashboardContent() {
             <Menu className="h-5 w-5" />
           </button>
 
-          <form
-            onSubmit={handleSearchSubmit}
-            className="relative flex basis-full min-w-0 items-center gap-2 md:basis-auto md:min-w-[220px] md:max-w-md md:flex-1"
-          >
-            <div className="relative flex flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-              <input
-                type="text"
-                placeholder="Αναζήτηση με κωδικό, περιγραφή ή brand (min 3 χαρακτήρες)..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 pl-10 pr-10 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition-all focus:border-blue-500"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:bg-slate-700/80 hover:text-slate-200"
-                  aria-label="Καθαρισμός αναζήτησης"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            <button
-              type="submit"
-              disabled={searchTerm.trim().length < MIN_SEARCH_LENGTH || isLoading}
-              className="shrink-0 rounded-lg border border-blue-500/50 bg-blue-500/20 px-3 py-2.5 text-sm font-medium text-blue-300 transition-colors hover:bg-blue-500/30 disabled:pointer-events-none disabled:opacity-50 sm:px-4"
-            >
-              <span className="hidden sm:inline">Αναζήτηση</span>
-              <Search className="h-4 w-4 sm:hidden" />
-            </button>
-          </form>
+          <div className="min-w-0 flex-1" aria-hidden />
 
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
             <Link
@@ -453,8 +421,85 @@ export default function MarketplaceDashboardContent() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          {/* Parts table + mobile cards */}
+        <main className="flex flex-1 flex-col overflow-y-auto p-4 sm:p-6">
+          {(() => {
+            const hasResults = hasSearched && products.length > 0;
+            const showCenteredEmpty = !isLoading && !error && (!hasSearched || products.length === 0);
+
+            const searchForm = (
+              <form
+                onSubmit={handleSearchSubmit}
+                className="relative flex w-full max-w-2xl flex-shrink-0 items-center gap-2"
+              >
+                <div className="relative flex flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="Αναζήτηση με κωδικό, περιγραφή ή brand (min 3 χαρακτήρες)..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 pl-10 pr-10 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition-all focus:border-blue-500"
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:bg-slate-700/80 hover:text-slate-200"
+                      aria-label="Καθαρισμός αναζήτησης"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={searchTerm.trim().length < MIN_SEARCH_LENGTH || isLoading}
+                  className="shrink-0 rounded-lg border border-blue-500/50 bg-blue-500/20 px-3 py-2.5 text-sm font-medium text-blue-300 transition-colors hover:bg-blue-500/30 disabled:pointer-events-none disabled:opacity-50 sm:px-4"
+                >
+                  <span className="hidden sm:inline">Αναζήτηση</span>
+                  <Search className="h-4 w-4 sm:hidden" />
+                </button>
+              </form>
+            );
+
+            if (showCenteredEmpty) {
+              return (
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-4 py-8">
+                  <h1 className="text-center text-4xl font-bold tracking-tighter text-slate-100">
+                    PARTSLOCATOR
+                  </h1>
+                  <div className="w-full max-w-2xl px-2">{searchForm}</div>
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <Search className="h-12 w-12 shrink-0 text-slate-500 opacity-30" aria-hidden />
+                    <p className="text-sm font-medium text-slate-500">
+                      {hasSearched && products.length === 0
+                        ? "Δεν βρέθηκαν ανταλλακτικά. Δοκιμάστε άλλον όρο ή μάρκα."
+                        : "Πραγματοποιήστε μια αναζήτηση για να δείτε αποτελέσματα"}
+                    </p>
+                    <p className="max-w-sm text-xs text-slate-500">
+                      Αναζητήστε με κωδικό, περιγραφή ή επιλέξτε μάρκα από τη sidebar.
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <>
+                <div className="mb-4 flex flex-col items-center gap-4 sm:mb-6">
+                  <h1 className="text-center text-3xl font-bold tracking-tighter text-slate-100 sm:text-4xl">
+                    PARTSLOCATOR
+                  </h1>
+                  <div className="w-full max-w-2xl">{searchForm}</div>
+                </div>
+                {isLoading ? (
+                  <div className="flex items-center gap-3 py-8 text-sm text-slate-400">
+                    <Loader2 className="h-5 w-5 animate-spin shrink-0" />
+                    <span>Searching...</span>
+                  </div>
+                ) : error ? (
+                  <p className="py-6 text-sm text-red-400">{error}</p>
+                ) : (
           <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/90">
             <div className="border-b border-slate-800 px-4 py-4 sm:px-6">
               <h2 className="text-lg font-semibold text-slate-100">
@@ -466,26 +511,6 @@ export default function MarketplaceDashboardContent() {
               </p>
             </div>
             <div className="overflow-x-auto">
-              {isLoading ? (
-                <div className="flex items-center gap-3 p-6 text-sm text-slate-400">
-                  <Loader2 className="h-5 w-5 animate-spin shrink-0" />
-                  <span>Searching...</span>
-                </div>
-              ) : error ? (
-                <p className="p-6 text-sm text-red-400">{error}</p>
-              ) : hasSearched && products.length === 0 ? (
-                <p className="p-6 text-sm text-slate-400">No parts found.</p>
-              ) : !hasSearched ? (
-                <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-                  <Search className="h-12 w-12 shrink-0 text-slate-500 opacity-30" aria-hidden />
-                  <p className="text-sm font-medium text-slate-500">
-                    Πραγματοποιήστε μια αναζήτηση για να δείτε αποτελέσματα
-                  </p>
-                  <p className="max-w-sm text-xs text-slate-500">
-                    Αναζητήστε με κωδικό, περιγραφή ή επιλέξτε μάρκα από τη sidebar.
-                  </p>
-                </div>
-              ) : (
                 <>
                   {subscriptionTier !== "PRO" && hasSearched && products.length > 0 && (
                     <div className="mx-4 mb-4 sm:mx-6">
@@ -836,6 +861,10 @@ export default function MarketplaceDashboardContent() {
               )}
             </div>
           </div>
+                )}
+              </>
+            );
+          })()}
         </main>
       </div>
 
