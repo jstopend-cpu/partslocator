@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -64,6 +64,9 @@ type Props = {
   pageSize: number;
   totalCount: number;
   suppliers: string[];
+  searchTerm?: string;
+  onSearchChange?: (q: string) => void;
+  onPageChange?: (newPage: number) => void;
 };
 
 export default function DashboardClient({
@@ -72,14 +75,35 @@ export default function DashboardClient({
   pageSize,
   totalCount,
   suppliers,
+  searchTerm: searchTermProp = "",
+  onSearchChange,
+  onPageChange,
 }: Props) {
   const router = useRouter();
   const [customer, setCustomer] = useState<CustomerSession | null>(null);
-  const [products] = useState<DashboardProduct[]>(
+  const [products, setProducts] = useState<DashboardProduct[]>(
     Array.isArray(initialProducts) ? initialProducts : []
   );
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState(searchTermProp);
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
+
+  useEffect(() => {
+    setProducts(Array.isArray(initialProducts) ? initialProducts : []);
+  }, [initialProducts]);
+
+  useEffect(() => {
+    setSearchInput(searchTermProp);
+  }, [searchTermProp]);
+
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (onSearchChange) {
+      searchDebounceRef.current = setTimeout(() => onSearchChange(value), 350);
+    }
+  };
+
   const [error, setError] = useState<string | null>(null);
   const [cart, setCart] = useState<
     {
@@ -152,17 +176,9 @@ export default function DashboardClient({
   const filteredProducts = useMemo(() => {
     const list = Array.isArray(products) ? products : [];
     const supplierValue = supplierFilter === "all" ? null : supplierFilter;
-    const term = searchTerm.trim().toLowerCase();
-
-    return list.filter((product) => {
-      if (supplierValue && product.supplier !== supplierValue) return false;
-      if (!term) return true;
-
-      const name = (product.name ?? "").toLowerCase();
-      const partNumber = (product.partNumber ?? product.ean ?? "").toLowerCase();
-      return name.includes(term) || partNumber.includes(term);
-    });
-  }, [products, searchTerm, supplierFilter]);
+    if (!supplierValue) return list;
+    return list.filter((product) => product.supplier === supplierValue);
+  }, [products, supplierFilter]);
 
   const totalProducts = totalCount;
   const productsList = Array.isArray(products) ? products : [];
@@ -366,8 +382,8 @@ export default function DashboardClient({
                   type="search"
                   placeholder="Αναζήτηση με όνομα, κωδικό, EAN..."
                   className="w-full rounded-lg border border-slate-700 bg-slate-900/90 py-2.5 pl-10 pr-3 text-sm text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                 />
               </div>
               <div className="flex w-full items-center gap-2 text-xs text-slate-400 md:w-64">
@@ -442,7 +458,7 @@ export default function DashboardClient({
             {!error && filteredProducts.length === 0 && (
               <div className="rounded-xl border border-slate-800 bg-slate-900/80 px-4 py-6 text-sm text-slate-400">
                 Δεν βρέθηκαν προϊόντα για την αναζήτηση{" "}
-                <span className="font-medium text-slate-200">"{searchTerm}"</span>. Δοκίμασε άλλη
+                <span className="font-medium text-slate-200">"{searchTermProp || searchInput}"</span>. Δοκίμασε άλλη
                 ονομασία ή EAN.
               </div>
             )}
@@ -462,7 +478,8 @@ export default function DashboardClient({
                   disabled={!hasPrevious}
                   onClick={() => {
                     if (!hasPrevious) return;
-                    router.push(`/dashboard?page=${page - 1}`);
+                    if (onPageChange) onPageChange(page - 1);
+                    else router.push(`/dashboard?page=${page - 1}`);
                   }}
                   className="inline-flex items-center rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 border-slate-700 bg-slate-900 text-slate-200 hover:border-slate-500 hover:bg-slate-800"
                 >
@@ -473,7 +490,8 @@ export default function DashboardClient({
                   disabled={!hasNext}
                   onClick={() => {
                     if (!hasNext) return;
-                    router.push(`/dashboard?page=${page + 1}`);
+                    if (onPageChange) onPageChange(page + 1);
+                    else router.push(`/dashboard?page=${page + 1}`);
                   }}
                   className="inline-flex items-center rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 border-emerald-600 bg-emerald-600/15 text-emerald-200 hover:border-emerald-500 hover:bg-emerald-600/30"
                 >
