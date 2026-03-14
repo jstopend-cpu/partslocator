@@ -74,7 +74,7 @@ export function PricingTableModal({ open, onClose }: PricingTableModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/20 py-2.5 text-sm font-medium text-amber-200 transition-colors hover:bg-amber-500/30"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/20 py-2.5 text-sm font-medium text-amber-200 shadow-[0_0_15px_rgba(251,191,36,0.4)] transition-colors hover:bg-amber-500/30 hover:shadow-[0_0_20px_rgba(251,191,36,0.5)]"
           >
             <Lock className="h-4 w-4" />
             Αναβάθμιση σε PRO
