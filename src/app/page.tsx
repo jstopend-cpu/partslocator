@@ -20,6 +20,7 @@ import {
   ShoppingCart,
   Package,
   ShieldCheck,
+  Menu,
 } from "lucide-react";
 
 const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
@@ -51,7 +52,7 @@ type MasterProductDTO = {
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/", active: true },
-  { label: "Παραγγελίες", icon: Package, href: "/dashboard/orders", active: false },
+  { label: "Οι Παραγγελίες μου", icon: Package, href: "/orders", active: false },
 ];
 
 const formatCurrency = (value: number) =>
@@ -76,6 +77,7 @@ export default function MarketplaceDashboard() {
   const [cart, setCart] = useState<CartItemRow[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const refreshCart = useCallback(() => {
     return getCart().then(setCart);
@@ -178,8 +180,8 @@ export default function MarketplaceDashboard() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-slate-950 font-sans text-slate-100">
-      {/* Sidebar */}
-      <aside className="flex w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-900/95">
+      {/* Desktop Sidebar - hidden on mobile */}
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-900/95 md:flex">
         <div className="border-b border-slate-800 p-6">
           <h1 className="text-xl font-semibold">Parts Marketplace</h1>
           <p className="text-xs text-slate-500">Master Catalog & Suppliers</p>
@@ -203,13 +205,86 @@ export default function MarketplaceDashboard() {
         </nav>
       </aside>
 
+      {/* Mobile menu overlay */}
+      {mobileMenuOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm md:hidden"
+            aria-hidden
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <aside
+            className="fixed left-0 top-0 z-50 flex h-full w-72 max-w-[85vw] flex-col border-r border-slate-800 bg-slate-900 shadow-xl transition-transform md:hidden"
+            aria-label="Μενού πλοήγησης"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 p-4">
+              <h2 className="text-lg font-semibold">Menu</h2>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+                aria-label="Κλείσιμο μενού"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+              <Link
+                href="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+              >
+                <LayoutDashboard className="h-5 w-5" />
+                <span>Dashboard (Αρχική)</span>
+              </Link>
+              <Link
+                href="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+              >
+                <Search className="h-5 w-5" />
+                <span>Αναζήτηση</span>
+              </Link>
+              <Link
+                href="/orders"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+              >
+                <Package className="h-5 w-5" />
+                <span>Οι Παραγγελίες μου</span>
+              </Link>
+              {userId === ADMIN_USER_ID && (
+                <Link
+                  href="/admin/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+                >
+                  <ShieldCheck className="h-5 w-5" />
+                  <span>Διαχείριση (Admin)</span>
+                </Link>
+              )}
+            </nav>
+          </aside>
+        </>
+      )}
+
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Header / Filters / Uploaders */}
-        <header className="flex flex-wrap items-center gap-4 border-b border-slate-800 bg-slate-950/98 px-6 py-4">
+        {/* Header */}
+        <header className="flex flex-wrap items-center gap-3 border-b border-slate-800 bg-slate-950/98 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
+          {/* Hamburger - mobile only */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:border-blue-500 hover:text-blue-300 md:hidden"
+            aria-label="Άνοιγμα μενού"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
           <form
             onSubmit={handleSearchSubmit}
-            className="relative flex min-w-[220px] flex-1 max-w-md items-center gap-2"
+            className="relative flex basis-full min-w-0 items-center gap-2 md:basis-auto md:min-w-[220px] md:max-w-md md:flex-1"
           >
             <div className="relative flex flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
@@ -234,18 +309,18 @@ export default function MarketplaceDashboard() {
             <button
               type="submit"
               disabled={searchTerm.trim().length < MIN_SEARCH_LENGTH || isLoading}
-              className="shrink-0 rounded-lg border border-blue-500/50 bg-blue-500/20 px-4 py-2.5 text-sm font-medium text-blue-300 transition-colors hover:bg-blue-500/30 disabled:pointer-events-none disabled:opacity-50"
+              className="shrink-0 rounded-lg border border-blue-500/50 bg-blue-500/20 px-3 py-2.5 text-sm font-medium text-blue-300 transition-colors hover:bg-blue-500/30 disabled:pointer-events-none disabled:opacity-50 sm:px-4"
             >
-              Αναζήτηση
+              <span className="hidden sm:inline">Αναζήτηση</span>
+              <Search className="h-4 w-4 sm:hidden" />
             </button>
           </form>
 
-          <div className="ml-auto flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setCartOpen(true)}
-              className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 hover:border-blue-500 hover:text-blue-300"
-              aria-label="Άνοιγμα καλαθιού"
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+            <Link
+              href="/cart"
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:border-blue-500 hover:text-blue-300"
+              aria-label="Καλάθι"
             >
               <ShoppingCart className="h-5 w-5" />
               {cart.length > 0 && (
@@ -253,7 +328,14 @@ export default function MarketplaceDashboard() {
                   {cart.reduce((s, i) => s + i.quantity, 0)}
                 </span>
               )}
-            </button>
+            </Link>
+            <Link
+              href="/orders"
+              className="hidden items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200 sm:flex"
+            >
+              <Package className="h-4 w-4 shrink-0" />
+              Οι Παραγγελίες μου
+            </Link>
             {userId === ADMIN_USER_ID && (
               <Link
                 href="/admin/dashboard"
@@ -275,10 +357,10 @@ export default function MarketplaceDashboard() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          {/* Parts table */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          {/* Parts table + mobile cards */}
           <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/90">
-            <div className="border-b border-slate-800 px-6 py-4">
+            <div className="border-b border-slate-800 px-4 py-4 sm:px-6">
               <h2 className="text-lg font-semibold text-slate-100">
                 Master Price List
               </h2>
@@ -302,6 +384,9 @@ export default function MarketplaceDashboard() {
                   Πληκτρολόγησε τουλάχιστον 3 χαρακτήρες και πάτα Enter ή κλικ στο &quot;Αναζήτηση&quot; για να φορτώσεις αποτελέσματα.
                 </p>
               ) : (
+                <>
+                  {/* Desktop: table */}
+                  <div className="hidden lg:block">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-500">
@@ -464,6 +549,68 @@ export default function MarketplaceDashboard() {
                     })}
                   </tbody>
                 </table>
+                  </div>
+
+                  {/* Mobile / tablet: cards (sm and md) */}
+                  <div className="space-y-3 p-4 lg:hidden sm:p-6">
+                    {products.map((product) => {
+                      const msrp = product.officialMsrp ?? 0;
+                      const stocks = product.stocks || [];
+                      const minOffer =
+                        stocks.length > 0
+                          ? Math.min(
+                              ...stocks.map((s) => s.supplierPrice ?? Infinity),
+                            )
+                          : undefined;
+                      return (
+                        <article
+                          key={product.id}
+                          className="flex flex-col gap-3 rounded-lg border border-slate-700/80 bg-slate-800/50 p-4 shadow-sm"
+                        >
+                          <span className="inline-flex w-fit rounded-md border border-slate-600 bg-slate-700/80 px-2.5 py-1 text-xs font-medium text-slate-300">
+                            {product.brand}
+                          </span>
+                          <p className="text-sm font-medium text-slate-100 leading-snug">
+                            {product.name}
+                          </p>
+                          <p className="font-mono text-xs text-blue-300">
+                            {product.partNumber}
+                          </p>
+                          <div className="flex flex-wrap items-baseline gap-2 text-sm">
+                            <span className="text-slate-200">
+                              {msrp == null || msrp === 0
+                                ? "—"
+                                : formatCurrency(msrp)}
+                            </span>
+                            {msrp != null && msrp > 0 && (
+                              <span className="text-slate-500">
+                                με ΦΠΑ: {formatCurrency(msrp * 1.24)}
+                              </span>
+                            )}
+                            {minOffer !== undefined &&
+                              Number.isFinite(minOffer) &&
+                              minOffer < msrp &&
+                              msrp > 0 && (
+                                <span className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
+                                  Καλύτερη: {formatCurrency(minOffer)}
+                                </span>
+                              )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addToCart(product)}
+                            disabled={msrp == null || msrp === 0 || cartLoading}
+                            className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/15 py-2.5 text-sm font-medium text-amber-200 transition-colors hover:bg-amber-500/25 disabled:pointer-events-none disabled:opacity-50"
+                            aria-label="Προσθήκη στο καλάθι"
+                          >
+                            <ShoppingCart className="h-4 w-4" />
+                            Προσθήκη στο καλάθι
+                          </button>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -552,20 +699,27 @@ export default function MarketplaceDashboard() {
               )}
             </div>
             {cart.length > 0 && (
-              <div className="border-t border-slate-800 p-4">
-                <div className="mb-3 flex items-center justify-between text-sm">
+              <div className="border-t border-slate-800 space-y-3 p-4">
+                <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-500">Σύνολο (με ΦΠΑ 24%)</span>
                   <span className="text-lg font-semibold text-slate-100">
                     {formatCurrency(cartTotalWithVat)}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleSubmitOrder}
-                  className="w-full rounded-lg bg-blue-600 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+                <Link
+                  href="/cart"
+                  onClick={() => setCartOpen(false)}
+                  className="block w-full rounded-lg border border-slate-600 bg-slate-800 py-2.5 text-center text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700"
                 >
-                  Υποβολή παραγγελίας
-                </button>
+                  Προβολή Καλαθιού
+                </Link>
+                <Link
+                  href="/checkout"
+                  onClick={() => setCartOpen(false)}
+                  className="block w-full rounded-lg bg-blue-600 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-blue-500"
+                >
+                  Συνέχεια στο Checkout
+                </Link>
               </div>
             )}
           </aside>
