@@ -858,7 +858,6 @@ export default function MarketplaceDashboardContent() {
                     })}
                   </div>
                 </>
-              )}
             </div>
           </div>
                 )}
