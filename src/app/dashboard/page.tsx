@@ -1,12 +1,27 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
+import { Loader2 } from "lucide-react";
 import DashboardContent from "./DashboardContent";
 
 export default function CustomerDashboardPage() {
   const { isLoaded, userId } = useAuth();
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setIsReady(true), 1000);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (!isReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-500" aria-hidden />
+      </div>
+    );
+  }
 
   if (!isLoaded) {
     return <div className="p-10">Φόρτωση...</div>;
