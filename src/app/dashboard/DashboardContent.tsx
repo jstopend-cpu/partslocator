@@ -45,7 +45,21 @@ export default function DashboardContent() {
         }));
       })
       .then(({ data, total }) => {
-        setDashboardData(data);
+        const mapped = (Array.isArray(data) ? data : []).map((p: Record<string, unknown>) => ({
+          id: String(p.id ?? ""),
+          partNumber: String(p.partNumber ?? ""),
+          name: String(p.name ?? ""),
+          ean: String(p.partNumber ?? p.ean ?? ""),
+          supplier: String(
+            (p.stocks as { supplier?: { name?: string } }[])?.[0]?.supplier?.name ?? p.brand ?? ""
+          ),
+          price: Number(p.officialMsrp ?? (p.stocks as { supplierPrice?: number }[])?.[0]?.supplierPrice ?? 0) || 0,
+          stock: Array.isArray(p.stocks)
+            ? (p.stocks as { quantity?: number }[]).reduce((s, t) => s + (Number(t.quantity) || 0), 0)
+            : 0,
+          updatedAt: String(p.updatedAt ?? ""),
+        })) as DashboardProduct[];
+        setDashboardData(mapped);
         setTotalCount(total);
         setError(null);
       })

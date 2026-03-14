@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
 import {
   Search,
@@ -11,6 +12,7 @@ import {
   PackageSearch,
   CheckCircle2,
   AlertTriangle,
+  ClipboardList,
 } from "lucide-react";
 
 type CustomerSession = {
@@ -51,13 +53,16 @@ const BrandBadge = ({ brand }: { brand: string }) => {
   );
 };
 
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat("el-GR", {
+function formatPrice(price: unknown): string {
+  const n = Number(price);
+  if (!Number.isFinite(n)) return "0,00 €";
+  return n.toLocaleString("el-GR", {
     style: "currency",
     currency: "EUR",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(price);
+  });
+}
 
 type Props = {
   initialProducts: DashboardProduct[];
@@ -299,52 +304,90 @@ export default function DashboardClient({
     }
   };
 
+  const pathname = usePathname();
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      <header className="border-b border-slate-800 bg-slate-950/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/40 bg-emerald-500/10">
-              <PackageSearch className="h-5 w-5 text-emerald-400" aria-hidden />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">Parts Locator</p>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-slate-500">
-                B2B Customer Dashboard
-              </p>
-            </div>
+    <div className="flex min-h-screen bg-slate-950 text-slate-100">
+      {/* Fixed sidebar */}
+      <aside className="fixed left-0 top-0 z-10 flex h-full w-56 flex-col border-r border-slate-800 bg-slate-950">
+        <div className="flex h-14 items-center gap-2 border-b border-slate-800 px-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/40 bg-emerald-500/10">
+            <PackageSearch className="h-5 w-5 text-emerald-400" aria-hidden />
           </div>
-
-          <div className="flex items-center gap-3">
-            {customer && (
-              <div className="hidden items-center gap-2 rounded-full border border-slate-800 bg-slate-900/80 px-3 py-1.5 text-xs text-slate-200 sm:flex">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-[11px] font-medium text-slate-100">
-                  {customer.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="font-medium">{customer.name}</span>
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wide">
-                    Customer · {customer.code}
-                  </span>
-                </div>
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:border-red-500/70 hover:bg-red-600/10 hover:text-red-200"
-            >
-              <LogOut className="h-3.5 w-3.5" aria-hidden />
-              <span className="hidden sm:inline">Αποσύνδεση</span>
-              <span className="sm:hidden">Έξοδος</span>
-            </button>
-          </div>
+          <span className="text-sm font-semibold text-white">Parts Locator</span>
         </div>
-      </header>
+        <nav className="flex-1 space-y-0.5 p-2">
+          <Link
+            href="/dashboard"
+            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname === "/dashboard"
+                ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+            }`}
+          >
+            <PackageSearch className="h-4 w-4 shrink-0" aria-hidden />
+            Products
+          </Link>
+          <Link
+            href="/dashboard/orders"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800/60 hover:text-slate-200"
+          >
+            <ClipboardList className="h-4 w-4 shrink-0" aria-hidden />
+            Orders
+          </Link>
+        </nav>
+        <div className="border-t border-slate-800 p-3">
+          <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">
+            Μάρκα / Brand
+          </label>
+          <select
+            value={supplierFilter}
+            onChange={(e) => {
+              setSupplierFilter(e.target.value);
+              if (page !== 1) router.push("/dashboard?page=1");
+            }}
+            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+          >
+            <option value="all">Όλες οι μάρκες</option>
+            {(suppliers || []).map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="border-t border-slate-800 p-2">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-800/60 hover:text-red-300"
+          >
+            <LogOut className="h-4 w-4 shrink-0" aria-hidden />
+            Αποσύνδεση
+          </button>
+        </div>
+      </aside>
 
-      <main className="flex-1 bg-slate-950">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8 lg:flex-row">
-          <div className="flex-1">
+      {/* Main content: scrollable */}
+      <div className="flex flex-1 flex-col pl-56">
+        <header className="sticky top-0 z-[9] border-b border-slate-800 bg-slate-950/95 backdrop-blur">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 md:px-6">
+            <div className="flex items-center gap-3">
+              <p className="text-sm font-semibold text-white">B2B Customer Dashboard</p>
+              {customer && (
+                <div className="hidden items-center gap-2 rounded-full border border-slate-800 bg-slate-900/80 px-3 py-1.5 text-xs text-slate-200 sm:flex">
+                  <User className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+                  <span>{customer.name}</span>
+                  <span className="text-[10px] text-slate-500">{customer.code}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-auto bg-slate-950">
+          <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8 lg:flex-row">
+            <div className="flex-1">
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 shadow-xl backdrop-blur">
             <div className="space-y-6 p-6 md:p-8">
             <section className="space-y-4">
@@ -387,27 +430,6 @@ export default function DashboardClient({
                   value={searchInput}
                   onChange={(e) => handleSearchChange(e.target.value)}
                 />
-              </div>
-              <div className="flex w-full items-center gap-2 text-xs text-slate-400 md:w-64">
-                <span className="whitespace-nowrap">Προμηθευτής:</span>
-                <select
-                  value={supplierFilter}
-                  onChange={(e) => {
-                    setSupplierFilter(e.target.value);
-                    // Reset to first page when changing supplier filter
-                    if (page !== 1) {
-                      router.push("/dashboard?page=1");
-                    }
-                  }}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                >
-                  <option value="all">Όλοι οι προμηθευτές</option>
-                  {(suppliers || []).map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
 
@@ -502,8 +524,8 @@ export default function DashboardClient({
               </div>
             </div>
 
-            {/* Desktop: clean table */}
-            <div className="hidden overflow-hidden rounded-xl border border-slate-800 md:block">
+            {/* Desktop: clean table - scrollable */}
+            <div className="hidden overflow-x-auto overflow-y-auto rounded-xl border border-slate-800 md:block max-h-[70vh]">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-800 bg-slate-800/60 text-xs font-medium uppercase tracking-wider text-slate-400">
@@ -715,7 +737,8 @@ export default function DashboardClient({
             )}
           </aside>
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
