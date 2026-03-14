@@ -17,7 +17,7 @@ export default function DashboardContent() {
   const search = searchParams.get("q") ?? searchParams.get("search") ?? "";
 
   const [isMounted, setIsMounted] = useState(false);
-  const [dashboardData, setDashboardData] = useState([]);
+  const [dashboardData, setDashboardData] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
