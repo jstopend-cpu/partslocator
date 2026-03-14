@@ -40,7 +40,7 @@ function AppleIcon({ className }: { className?: string }) {
 export default function LoginPage() {
   const router = useRouter();
   const { isSignedIn, isLoaded } = useAuth();
-  const signIn = useSignIn();
+  const signIn = useSignIn() as unknown as { authenticateWithRedirect: (opts: { strategy: string; redirectUrl: string; redirectUrlComplete: string }) => Promise<void> } | null;
 
   useEffect(() => {
     if (!isLoaded) return;
