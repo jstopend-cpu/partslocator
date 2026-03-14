@@ -15,7 +15,9 @@ type VerifiedBusiness = {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { isLoaded, signUp } = useSignUp();
+  const signUpValues = useSignUp();
+  const isLoaded = signUpValues.isLoaded;
+  const signUp = signUpValues.signUp;
   const { setActive } = useClerk();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [afm, setAfm] = useState("");
