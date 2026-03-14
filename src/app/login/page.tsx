@@ -51,18 +51,10 @@ export default function LoginPage() {
 
   const handleSocialSignIn = async (strategy: "oauth_google" | "oauth_apple") => {
     if (!signIn) return;
-    const base =
-      typeof window !== "undefined" && window.location.hostname === "partslocator.vercel.app"
-        ? "https://partslocator.vercel.app"
-        : typeof window !== "undefined"
-          ? window.location.origin
-          : "";
-    const redirectUrl = `${base || ""}/sign-in/sso-callback`;
-    const redirectUrlComplete = "/dashboard";
     await signIn.authenticateWithRedirect({
       strategy,
-      redirectUrl,
-      redirectUrlComplete,
+      redirectUrl: "/sign-in/sso-callback",
+      redirectUrlComplete: "/dashboard",
     });
   };
 
