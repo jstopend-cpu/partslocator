@@ -1,25 +1,9 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-// Landing, login, register, and auth routes are public; /dashboard, /admin, etc. require auth
-const isPublicRoute = createRouteMatcher([
-  "/",
-  "/login",
-  "/login(.*)",
-  "/register",
-  "/register(.*)",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/api/verify-afm",
-  "/api/verify-vies",
-  "/api/send-welcome-email",
-]);
-
+// No auth.protect() in middleware — pages handle protection and redirect to /login themselves.
+// This avoids redirect loops between /dashboard and Clerk's sign-in.
 export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
-    await auth.protect();
-  }
-
   const pathname = req.nextUrl.pathname;
   const authObj = await auth();
   const claims = authObj.sessionClaims as { metadata?: { role?: string; supplierId?: string }; public_metadata?: { role?: string; supplierId?: string } };

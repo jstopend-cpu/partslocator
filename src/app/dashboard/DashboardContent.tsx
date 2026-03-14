@@ -11,7 +11,7 @@ const PAGE_SIZE = 10;
 
 export default function DashboardContent() {
   const router = useRouter();
-  const { isLoaded } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
   const searchParams = useSearchParams();
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const search = searchParams.get("q") ?? searchParams.get("search") ?? "";
@@ -26,57 +26,29 @@ export default function DashboardContent() {
     setIsMounted(true);
   }, []);
 
-  const loadProducts = useCallback((pageNum: number, searchTerm: string) => {
-    setError(null);
-    setLoading(true);
-    const controller = new AbortController();
-    const { signal } = controller;
-    const url = `/api/products?page=${pageNum}&search=${encodeURIComponent(searchTerm)}`;
-
-    fetch(url, { signal })
-      .then((res) => {
-        if (!res.ok) throw new Error("Network response was not ok");
-        const totalHeader = res.headers.get("X-Total-Count");
-        const total = totalHeader != null ? parseInt(totalHeader, 10) || 0 : 0;
-        return res.json().then((data) => ({ data, total }));
-      })
-      .then(({ data, total }) => {
-        const raw = Array.isArray(data) ? data : Array.isArray(data?.products) ? data.products : [];
-        console.log("[Dashboard] Products response:", { totalCount: total, page: pageNum, itemsReturned: raw.length });
-        const list = raw.map((p: { id: string; partNumber?: string; name: string; officialMsrp?: number; updatedAt?: string; stocks?: Array<{ supplier?: { name?: string }; supplierPrice?: number; quantity?: number; updatedAt?: string }> }) => {
-          const first = p.stocks?.[0];
-          return {
-            id: p.id,
-            partNumber: p.partNumber,
-            name: p.name,
-            ean: p.partNumber ?? "",
-            supplier: first?.supplier?.name ?? "",
-            price: first?.supplierPrice ?? p.officialMsrp ?? 0,
-            stock: first?.quantity ?? 0,
-            updatedAt: first?.updatedAt ?? p.updatedAt ?? new Date().toISOString(),
-          };
-        });
-        setDashboardData(list);
-        setTotalCount(total);
-        setLoading(false);
-      })
-      .catch((e) => {
-        if (e instanceof Error && e.name === "AbortError") return;
-        setDashboardData([]);
-        setTotalCount(0);
-        setError("Database connection error. Please refresh.");
-        setLoading(false);
-      });
-
-    return () => controller.abort();
+  // TEMPORARILY DISABLED: fetch commented out to rule out data volume causing auth timeout / redirect loop.
+  const loadProducts = useCallback((_pageNum: number, _searchTerm: string) => {
+    setLoading(false);
+    // setError(null);
+    // setLoading(true);
+    // const controller = new AbortController();
+    // const { signal } = controller;
+    // const url = `/api/products?page=${_pageNum}&search=${encodeURIComponent(_searchTerm)}`;
+    // fetch(url, { signal })
+    //   .then((res) => { ... })
+    //   .then(({ data, total }) => { ... })
+    //   .catch((e) => { ... });
+    // return () => controller.abort();
+    return () => {};
   }, []);
 
   useEffect(() => {
+    if (!isLoaded) return;
     const cleanup = loadProducts(page, search);
     return () => {
       if (typeof cleanup === "function") cleanup();
     };
-  }, [page, search, loadProducts]);
+  }, [isLoaded, page, search, loadProducts]);
 
   const safeProductsList = useMemo(
     () => (Array.isArray(dashboardData) ? dashboardData : []) as DashboardProduct[],
@@ -92,6 +64,15 @@ export default function DashboardContent() {
   );
 
   if (!isLoaded) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-500" aria-hidden />
+      </div>
+    );
+  }
+
+  if (isLoaded && !isSignedIn) {
+    router.push("/login");
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
         <Loader2 className="h-8 w-8 animate-spin text-slate-500" aria-hidden />
