@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/database/client";
+import { getSubscriptionTier } from "@/app/actions/subscription";
 
 export type CartItemRow = {
   id: string;
@@ -42,11 +43,37 @@ export async function getCartCount(): Promise<number> {
   return result._sum.quantity ?? 0;
 }
 
+/** Select the SupplierStock with lowest price and quantity >= 1 for the given master product. */
+async function getBestStockForProduct(masterProductId: string): Promise<{
+  price: number;
+  supplierStockId: string | null;
+} | null> {
+  const product = await prisma.masterProduct.findUnique({
+    where: { id: masterProductId },
+    include: {
+      stocks: {
+        where: { quantity: { gte: 1 } },
+        orderBy: { supplierPrice: "asc" },
+        take: 1,
+        include: { supplier: { select: { name: true } } },
+      },
+    },
+  });
+  if (!product) return null;
+  const best = product.stocks[0];
+  if (best) {
+    return { price: best.supplierPrice, supplierStockId: best.id };
+  }
+  return {
+    price: product.officialMsrp,
+    supplierStockId: null,
+  };
+}
+
 export async function addToCart(params: {
   masterProductId: string;
   partNumber: string;
   quantity?: number;
-  price: number;
   brand: string;
   description: string;
 }): Promise<{ ok: boolean; error?: string }> {
@@ -55,8 +82,30 @@ export async function addToCart(params: {
     return { ok: false, error: "Πρέπει να είστε συνδεδεμένοι." };
   }
 
-  const { masterProductId, partNumber, price, brand, description } = params;
+  const { masterProductId, partNumber, brand, description } = params;
   const quantity = Math.max(1, params.quantity ?? 1);
+  const tier = await getSubscriptionTier();
+
+  let price: number;
+  let supplierStockId: string | null = null;
+
+  if (tier === "PRO") {
+    const best = await getBestStockForProduct(masterProductId);
+    if (!best || best.price <= 0) {
+      return { ok: false, error: "Προϊόν μη διαθέσιμο ή χωρίς τιμή." };
+    }
+    price = best.price;
+    supplierStockId = best.supplierStockId;
+  } else {
+    const product = await prisma.masterProduct.findUnique({
+      where: { id: masterProductId },
+      select: { officialMsrp: true },
+    });
+    if (!product || (product.officialMsrp ?? 0) <= 0) {
+      return { ok: false, error: "Προϊόν μη διαθέσιμο ή χωρίς τιμή." };
+    }
+    price = product.officialMsrp;
+  }
 
   try {
     await prisma.cartItem.upsert({
@@ -66,6 +115,7 @@ export async function addToCart(params: {
       create: {
         userId,
         masterProductId,
+        supplierStockId,
         partNumber,
         quantity,
         price,
@@ -75,12 +125,12 @@ export async function addToCart(params: {
       update: {
         quantity: { increment: quantity },
         price,
+        supplierStockId,
         partNumber,
       },
     });
     return { ok: true };
   } catch (e) {
-    console.error("[cart] addToCart:", e);
     return { ok: false, error: "Αποτυχία προσθήκης στο καλάθι." };
   }
 }

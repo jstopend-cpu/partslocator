@@ -131,7 +131,7 @@ function parseXlsxBuffer(buffer: ArrayBuffer): { headers: string[]; rows: Record
   const workbook = XLSX.read(buffer, { type: "array", sheetRows: 10000 });
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
   if (!firstSheet) return { headers: [], rows: [] };
-  const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, {
+  const data = XLSX.utils.sheet_to_json(firstSheet, {
     header: 1,
     defval: "",
   }) as unknown[][];

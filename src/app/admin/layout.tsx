@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { ArrowLeft, BarChart3, Package, Loader2, Warehouse, Menu, X, FileInput, Truck } from "lucide-react";
 
 const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
@@ -24,14 +24,20 @@ export default function AdminLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { userId, isLoaded } = useAuth();
+  const { user } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
+    const role = (user?.publicMetadata as { role?: string } | undefined)?.role;
+    if (role === "SUPPLIER") {
+      router.replace("/supplier/dashboard");
+      return;
+    }
     if (userId !== ADMIN_USER_ID) {
       router.replace("/");
     }
-  }, [isLoaded, userId, router]);
+  }, [isLoaded, userId, user?.publicMetadata, router]);
 
   useEffect(() => {
     setMobileMenuOpen(false);

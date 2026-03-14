@@ -56,7 +56,13 @@ export default function CheckoutPage() {
     if (cart.length === 0) return;
     setSubmitting(true);
     try {
-      const result = await createOrder();
+      const result = await createOrder({
+        shippingName: form.shippingName,
+        shippingAddress: form.shippingAddress,
+        shippingCity: form.shippingCity,
+        shippingPostalCode: form.shippingPostalCode,
+        shippingPhone: form.shippingPhone,
+      });
       if (result.ok) {
         router.push("/dashboard/orders?placed=1");
       } else {

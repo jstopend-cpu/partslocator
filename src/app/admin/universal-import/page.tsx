@@ -322,9 +322,10 @@ export default function UniversalImportPage() {
   };
 
   const dbFields = targetTable === "SUPPLIER" ? DB_FIELDS_SUPPLIER : DB_FIELDS_MASTER;
-  const unmappedRequired = dbFields.some(
-    (f) => f.required && !(mapping[f.key] && headers.includes(mapping[f.key]))
-  );
+  const unmappedRequired = dbFields.some((f) => {
+    const mapped = mapping[f.key];
+    return f.required && !(typeof mapped === "string" && headers.includes(mapped));
+  });
 
   return (
     <>

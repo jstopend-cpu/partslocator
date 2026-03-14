@@ -23,28 +23,36 @@ model CartItem {
   id              String        @id @default(cuid())
   userId          String        // Clerk user id
   masterProductId String
+  supplierStockId String?       // best-price supplier stock at add time
   partNumber      String        // at time of add, for display
   quantity        Int
-  price           Float         // price at time of add (e.g. officialMsrp)
+  price           Float         // price at time of add (best supplier or MSRP)
   brand           String
   description     String        // product name at time of add
   createdAt       DateTime      @default(now())
 
   masterProduct   MasterProduct @relation(fields: [masterProductId], references: [id], onDelete: Cascade)
+  supplierStock   SupplierStock? @relation(fields: [supplierStockId], references: [id], onDelete: SetNull)
 
   @@unique([userId, masterProductId])
   @@index([userId])
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  userId     String      // Clerk user id
-  status     String      @default("PENDING") // e.g. PENDING, CONFIRMED, SHIPPED
-  totalPrice Float       // total with VAT at time of order
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id                 String      @id @default(cuid())
+  userId             String      // Clerk user id
+  status             String      @default("PENDING") // PENDING, CONFIRMED, PROCESSING, SHIPPED, READY_FOR_PICKUP, COMPLETED, CANCELLED
+  totalPrice         Float       // total with VAT at time of order
+  shippingName       String?
+  shippingAddress    String?
+  shippingCity       String?
+  shippingPostalCode String?
+  shippingPhone      String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
-  items OrderItem[]
+  items     OrderItem[]
+  subOrders SubOrder[]
 
   @@index([userId])
 }
@@ -63,11 +71,46 @@ model OrderItem {
   @@index([orderId])
 }
 
+// Vendor order: one per supplier for a given master order
+model SubOrder {
+  id         String   @id @default(cuid())
+  orderId    String
+  supplierId String
+  status     String   @default("PENDING")
+  totalPrice Float    // sum of (price * quantity) for this supplier
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  order    Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  supplier Supplier      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  items    SubOrderItem[]
+
+  @@index([orderId])
+  @@index([supplierId])
+}
+
+model SubOrderItem {
+  id              String   @id @default(cuid())
+  subOrderId      String
+  masterProductId String
+  partNumber      String
+  description     String
+  price           Float
+  quantity        Int
+
+  subOrder SubOrder @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+
+  @@index([subOrderId])
+}
+
 model Supplier {
   id       String          @id @default(cuid())
   name     String          @unique
   location String
+  email    String?         // for order notifications
+  userId   String?         @unique // Clerk user id – links supplier portal user to this record
   stocks   SupplierStock[]
+  subOrders SubOrder[]
 }
 
 model SupplierStock {
@@ -80,6 +123,7 @@ model SupplierStock {
 
   masterProduct   MasterProduct  @relation(fields: [masterProductId], references: [id])
   supplier        Supplier       @relation(fields: [supplierId], references: [id])
+  cartItems       CartItem[]
 
   @@unique([masterProductId, supplierId])
 }
@@ -118,6 +162,14 @@ model UpdateLog {
 
   @@index([createdAt])
   @@index([brandId])
+}
+
+// Subscription tier per user (Clerk userId). Source of truth for FREE | BASIC | PRO.
+model Profile {
+  id               String   @id @default(cuid())
+  userId           String   @unique // Clerk user id
+  subscriptionTier String   @default("FREE") // FREE | BASIC | PRO
+  updatedAt        DateTime @updatedAt
 }
 
 // Universal Importer: saved field mappings + options for reuse

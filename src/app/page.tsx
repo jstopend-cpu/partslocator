@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { useAuth, UserButton } from "@clerk/nextjs";
+import { useAuth, useUser, UserButton } from "@clerk/nextjs";
 import {
   getCart,
   addToCart as addToCartAction,
@@ -11,6 +11,9 @@ import {
   type CartItemRow,
 } from "@/app/actions/cart";
 import { createOrder as createOrderAction } from "@/app/actions/orders";
+import { getSubscriptionTier, type SubscriptionTier } from "@/app/actions/subscription";
+import { UpgradeToPro } from "@/components/UpgradeToPro";
+import { PricingTableModal } from "@/components/PricingTableModal";
 import {
   LayoutDashboard,
   Search,
@@ -21,6 +24,7 @@ import {
   Package,
   ShieldCheck,
   Menu,
+  Truck,
 } from "lucide-react";
 
 const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
@@ -65,9 +69,15 @@ const formatCurrency = (value: number) =>
 
 const MIN_SEARCH_LENGTH = 3;
 const SEARCH_LIMIT = 100;
+const QUANTITY_THRESHOLD = 10; // BASIC: show "10+" if qty >= this, else "Limited"
+
+export type UserPlan = "BASIC" | "PRO";
 
 export default function MarketplaceDashboard() {
   const { userId } = useAuth();
+  const { user } = useUser();
+  const isSupplier = (user?.publicMetadata as { role?: string })?.role === "SUPPLIER";
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>("FREE");
   const [products, setProducts] = useState<MasterProductDTO[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +88,11 @@ export default function MarketplaceDashboard() {
   const [cartOpen, setCartOpen] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
+
+  useEffect(() => {
+    getSubscriptionTier().then(setSubscriptionTier);
+  }, []);
 
   const refreshCart = useCallback(() => {
     return getCart().then(setCart);
@@ -120,13 +135,12 @@ export default function MarketplaceDashboard() {
   };
 
   const addToCart = async (product: MasterProductDTO) => {
-    const msrp = product.officialMsrp ?? 0;
-    if (msrp == null || msrp === 0) return;
+    const inStock = (product.stocks || []).filter((s) => (s.quantity ?? 0) >= 1);
+    if (inStock.length === 0) return;
     setCartLoading(true);
     const result = await addToCartAction({
       masterProductId: product.id,
       partNumber: product.partNumber,
-      price: msrp,
       brand: product.brand,
       description: product.name,
     });
@@ -202,6 +216,17 @@ export default function MarketplaceDashboard() {
               </Link>
             </div>
           ))}
+          {isSupplier && (
+            <div>
+              <Link
+                href="/supplier/dashboard"
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+              >
+                <Truck className="h-5 w-5" />
+                <span>Supplier Panel</span>
+              </Link>
+            </div>
+          )}
         </nav>
       </aside>
 
@@ -253,6 +278,16 @@ export default function MarketplaceDashboard() {
                 <Package className="h-5 w-5" />
                 <span>Οι Παραγγελίες μου</span>
               </Link>
+              {isSupplier && (
+                <Link
+                  href="/supplier/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+                >
+                  <Truck className="h-5 w-5" />
+                  <span>Supplier Panel</span>
+                </Link>
+              )}
               {userId === ADMIN_USER_ID && (
                 <Link
                   href="/admin/dashboard"
@@ -336,6 +371,16 @@ export default function MarketplaceDashboard() {
               <Package className="h-4 w-4 shrink-0" />
               Οι Παραγγελίες μου
             </Link>
+            {isSupplier && (
+              <Link
+                href="/supplier/dashboard"
+                className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200"
+                title="Supplier Panel"
+              >
+                <Truck className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">Supplier Panel</span>
+              </Link>
+            )}
             {userId === ADMIN_USER_ID && (
               <Link
                 href="/admin/dashboard"
@@ -385,6 +430,20 @@ export default function MarketplaceDashboard() {
                 </p>
               ) : (
                 <>
+                  {subscriptionTier !== "PRO" && hasSearched && products.length > 0 && (
+                    <div className="mx-4 mb-4 sm:mx-6">
+                      <div id="upgrade-pro">
+                        <UpgradeToPro onUpgradeClick={() => setPricingModalOpen(true)} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPricingModalOpen(true)}
+                        className="mt-2 text-xs text-amber-400 hover:underline"
+                      >
+                        View pricing table
+                      </button>
+                    </div>
+                  )}
                   {/* Desktop: table */}
                   <div className="hidden lg:block">
                 <table className="w-full text-sm">
@@ -394,6 +453,7 @@ export default function MarketplaceDashboard() {
                       <th className="px-6 py-3">Κωδικός</th>
                       <th className="px-6 py-3">Περιγραφή</th>
                       <th className="px-6 py-3">Brand</th>
+                      <th className="px-6 py-3">Διαθεσιμότητα</th>
                       <th className="px-6 py-3">Τιμή (Χωρίς ΦΠΑ)</th>
                       <th className="px-6 py-3">Τιμή (με ΦΠΑ 24%)</th>
                       <th className="px-6 py-3 w-20"></th>
@@ -403,6 +463,11 @@ export default function MarketplaceDashboard() {
                     {products.map((product) => {
                       const isExpanded = !!expanded[product.id];
                       const stocks = product.stocks || [];
+                      const inStockStocks = stocks.filter((s) => (s.quantity ?? 0) >= 1);
+                      const hasStock = inStockStocks.length > 0;
+                      const bestStock = inStockStocks.length > 0
+                        ? [...inStockStocks].sort((a, b) => (a.supplierPrice ?? 0) - (b.supplierPrice ?? 0))[0]
+                        : null;
                       const msrp = product.officialMsrp ?? 0;
                       const minOffer =
                         stocks.length > 0
@@ -410,6 +475,18 @@ export default function MarketplaceDashboard() {
                               ...stocks.map((s) => s.supplierPrice ?? Infinity),
                             )
                           : undefined;
+                      const availabilityText =
+                        subscriptionTier === "FREE"
+                          ? hasStock ? "Available" : "Out of Stock"
+                          : subscriptionTier === "BASIC"
+                            ? hasStock && bestStock
+                              ? `Ναι · ${bestStock.supplier?.name ?? "—"} · ${(bestStock.quantity ?? 0) >= QUANTITY_THRESHOLD ? "10+" : "Limited"}`
+                              : hasStock ? "Ναι" : "Όχι"
+                            : hasStock && bestStock
+                              ? `${bestStock.quantity} τμχ · Καλύτερη: ${formatCurrency(bestStock.supplierPrice)} από ${bestStock.supplier?.name ?? "—"}`
+                              : "Όχι";
+
+                      const showDiscountedPrice = subscriptionTier === "PRO";
 
                       return (
                         <React.Fragment key={product.id}>
@@ -441,17 +518,34 @@ export default function MarketplaceDashboard() {
                             <td className="px-6 py-3 align-top text-xs text-slate-400">
                               {product.brand}
                             </td>
+                            <td className="px-6 py-3 align-top text-sm text-slate-300">
+                              {availabilityText}
+                            </td>
                             <td className="px-6 py-3 align-top text-slate-100">
                               {msrp == null || msrp === 0
                                 ? "—"
                                 : formatCurrency(msrp)}
-                              {minOffer !== undefined &&
+                              {showDiscountedPrice &&
+                                minOffer !== undefined &&
                                 Number.isFinite(minOffer) &&
                                 minOffer < msrp &&
                                 msrp > 0 && (
                                   <span className="ml-2 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-300">
                                     Καλύτερη: {formatCurrency(minOffer)}
                                   </span>
+                                )}
+                              {!showDiscountedPrice &&
+                                minOffer !== undefined &&
+                                Number.isFinite(minOffer) &&
+                                minOffer < msrp &&
+                                msrp > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPricingModalOpen(true)}
+                                    className="ml-2 inline-flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-300 hover:bg-amber-500/20"
+                                  >
+                                    {subscriptionTier === "FREE" ? "Connect for price" : "PRO"}
+                                  </button>
                                 )}
                             </td>
                             <td className="px-6 py-3 align-top text-slate-100">
@@ -463,7 +557,7 @@ export default function MarketplaceDashboard() {
                               <button
                                 type="button"
                                 onClick={() => addToCart(product)}
-                                disabled={msrp == null || msrp === 0 || cartLoading}
+                                disabled={!hasStock || cartLoading}
                                 className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:border-amber-500/60 hover:bg-amber-500/10 hover:text-amber-400 disabled:pointer-events-none disabled:opacity-50"
                                 aria-label="Προσθήκη στο καλάθι"
                                 title="Προσθήκη στο καλάθι"
@@ -475,7 +569,7 @@ export default function MarketplaceDashboard() {
 
                           {isExpanded && (
                             <tr className="border-b border-slate-800/80 bg-slate-950/80">
-                              <td colSpan={7} className="px-10 pb-4 pt-0">
+                              <td colSpan={8} className="px-10 pb-4 pt-0">
                                 {stocks.length === 0 ? (
                                   <div className="py-3 text-xs text-slate-500">
                                     Δεν υπάρχουν ακόμα εγγραφές αποθέματος από
@@ -485,18 +579,13 @@ export default function MarketplaceDashboard() {
                                   <table className="mt-2 w-full text-xs">
                                     <thead>
                                       <tr className="border-b border-slate-800 text-left text-[11px] uppercase tracking-wide text-slate-500">
-                                        <th className="px-2 py-2">
-                                          Προμηθευτής
-                                        </th>
-                                        <th className="px-2 py-2">
-                                          Τιμή Προσφοράς
-                                        </th>
-                                        <th className="px-2 py-2">
-                                          Διαθεσιμότητα
-                                        </th>
-                                        <th className="px-2 py-2">
-                                          Τελευταία Ενημέρωση
-                                        </th>
+                                        <th className="px-2 py-2">Προμηθευτής</th>
+                                        <th className="px-2 py-2">Τιμή Προσφοράς</th>
+                                        <th className="px-2 py-2">Διαθεσιμότητα</th>
+                                        {subscriptionTier === "PRO" && (
+                                          <th className="px-2 py-2">Shipping (est.)</th>
+                                        )}
+                                        <th className="px-2 py-2">Τελευταία Ενημέρωση</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -505,6 +594,17 @@ export default function MarketplaceDashboard() {
                                           Number.isFinite(minOffer) &&
                                           stock.supplierPrice === minOffer &&
                                           (minOffer as number) < msrp;
+                                        const qty = stock.quantity ?? 0;
+                                        const quantityLabel =
+                                          subscriptionTier === "PRO"
+                                            ? `${qty} τμχ`
+                                            : subscriptionTier === "BASIC"
+                                              ? qty >= QUANTITY_THRESHOLD
+                                                ? "10+"
+                                                : "Limited"
+                                              : "In Stock";
+                                        const showSupplier = subscriptionTier !== "FREE";
+                                        const showPrice = subscriptionTier === "PRO";
 
                                         return (
                                           <tr
@@ -512,22 +612,49 @@ export default function MarketplaceDashboard() {
                                             className="border-b border-slate-800/60 last:border-0"
                                           >
                                             <td className="px-2 py-2 text-slate-200">
-                                              {stock.supplier?.name || "—"}
+                                              {showSupplier ? (
+                                                stock.supplier?.name || "—"
+                                              ) : (
+                                                <span className="select-none blur-sm" title="Upgrade to PRO to see supplier">
+                                                  {stock.supplier?.name || "—"}
+                                                </span>
+                                              )}
+                                              {!showSupplier && (
+                                                <span className="ml-1 text-[10px] text-amber-400">Hidden</span>
+                                              )}
                                             </td>
                                             <td
                                               className={`px-2 py-2 ${
-                                                isBest
+                                                isBest && showPrice
                                                   ? "font-semibold text-emerald-300"
                                                   : "text-slate-200"
                                               }`}
                                             >
-                                              {formatCurrency(
-                                                stock.supplierPrice,
+                                              {showPrice
+                                                ? formatCurrency(stock.supplierPrice)
+                                                : "—"}
+                                              {!showPrice && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setPricingModalOpen(true)}
+                                                  className="ml-1 text-[10px] text-amber-400 hover:underline"
+                                                >
+                                                  Connect for price
+                                                </button>
                                               )}
                                             </td>
                                             <td className="px-2 py-2 text-slate-200">
-                                              {stock.quantity} τμχ
+                                              {subscriptionTier === "FREE" ? (
+                                                "Available"
+                                              ) : (
+                                                quantityLabel
+                                              )}
                                             </td>
+                                            {subscriptionTier === "PRO" && (
+                                              <td className="px-2 py-2 text-[11px] text-slate-400">
+                                                —
+                                              </td>
+                                            )}
                                             <td className="px-2 py-2 text-[11px] text-slate-500">
                                               {stock.updatedAt
                                                 ? new Date(
@@ -556,12 +683,28 @@ export default function MarketplaceDashboard() {
                     {products.map((product) => {
                       const msrp = product.officialMsrp ?? 0;
                       const stocks = product.stocks || [];
+                      const inStockStocks = stocks.filter((s) => (s.quantity ?? 0) >= 1);
+                      const hasStock = inStockStocks.length > 0;
+                      const bestStock = inStockStocks.length > 0
+                        ? [...inStockStocks].sort((a, b) => (a.supplierPrice ?? 0) - (b.supplierPrice ?? 0))[0]
+                        : null;
                       const minOffer =
                         stocks.length > 0
                           ? Math.min(
                               ...stocks.map((s) => s.supplierPrice ?? Infinity),
                             )
                           : undefined;
+                      const availabilityTextMobile =
+                        subscriptionTier === "FREE"
+                          ? hasStock ? "Available" : "Out of Stock"
+                          : subscriptionTier === "BASIC"
+                            ? hasStock && bestStock
+                              ? `Ναι · ${bestStock.supplier?.name ?? "—"} · ${(bestStock.quantity ?? 0) >= QUANTITY_THRESHOLD ? "10+" : "Limited"}`
+                              : hasStock ? "Ναι" : "Όχι"
+                            : hasStock && bestStock
+                              ? `${bestStock.quantity} τμχ · Καλύτερη: ${formatCurrency(bestStock.supplierPrice)} από ${bestStock.supplier?.name ?? "—"}`
+                              : "Όχι";
+                      const showDiscountedPriceMobile = subscriptionTier === "PRO";
                       return (
                         <article
                           key={product.id}
@@ -576,6 +719,9 @@ export default function MarketplaceDashboard() {
                           <p className="font-mono text-xs text-blue-300">
                             {product.partNumber}
                           </p>
+                          <p className="text-xs text-slate-400">
+                            Διαθεσιμότητα: {availabilityTextMobile}
+                          </p>
                           <div className="flex flex-wrap items-baseline gap-2 text-sm">
                             <span className="text-slate-200">
                               {msrp == null || msrp === 0
@@ -587,7 +733,8 @@ export default function MarketplaceDashboard() {
                                 με ΦΠΑ: {formatCurrency(msrp * 1.24)}
                               </span>
                             )}
-                            {minOffer !== undefined &&
+                            {showDiscountedPriceMobile &&
+                              minOffer !== undefined &&
                               Number.isFinite(minOffer) &&
                               minOffer < msrp &&
                               msrp > 0 && (
@@ -595,11 +742,24 @@ export default function MarketplaceDashboard() {
                                   Καλύτερη: {formatCurrency(minOffer)}
                                 </span>
                               )}
+                            {!showDiscountedPriceMobile &&
+                              minOffer !== undefined &&
+                              Number.isFinite(minOffer) &&
+                              minOffer < msrp &&
+                              msrp > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setPricingModalOpen(true)}
+                                  className="inline-flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-300 hover:bg-amber-500/20"
+                                >
+                                  {subscriptionTier === "FREE" ? "Connect for price" : "PRO price"}
+                                </button>
+                              )}
                           </div>
                           <button
                             type="button"
                             onClick={() => addToCart(product)}
-                            disabled={msrp == null || msrp === 0 || cartLoading}
+                            disabled={!hasStock || cartLoading}
                             className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/15 py-2.5 text-sm font-medium text-amber-200 transition-colors hover:bg-amber-500/25 disabled:pointer-events-none disabled:opacity-50"
                             aria-label="Προσθήκη στο καλάθι"
                           >
@@ -725,6 +885,8 @@ export default function MarketplaceDashboard() {
           </aside>
         </>
       )}
+
+      <PricingTableModal open={pricingModalOpen} onClose={() => setPricingModalOpen(false)} />
     </div>
   );
 }

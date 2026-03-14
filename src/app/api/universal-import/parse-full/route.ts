@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { getRowsFromFile, detectFileType } from "@/lib/universal-import/parse";
 
 const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
@@ -10,7 +10,14 @@ export const fetchCache = "force-no-store";
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
-    if (userId !== ADMIN_USER_ID) {
+    if (!userId) {
+      return Response.json({ error: "Unauthorized." }, { status: 403 });
+    }
+    const user = await currentUser();
+    const metadata = user?.publicMetadata as { role?: string } | undefined;
+    const isAdmin = userId === ADMIN_USER_ID;
+    const isSupplier = metadata?.role === "SUPPLIER";
+    if (!isAdmin && !isSupplier) {
       return Response.json({ error: "Unauthorized." }, { status: 403 });
     }
     const formData = await request.formData();

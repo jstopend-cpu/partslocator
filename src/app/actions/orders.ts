@@ -2,10 +2,10 @@
 
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/database/client";
-import { getCart } from "@/app/actions/cart";
+import { sendSupplierOrderNotification } from "@/lib/email";
 
 const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
-const ALLOWED_STATUSES = ["PENDING", "CONFIRMED", "SHIPPED", "COMPLETED", "CANCELLED"] as const;
+const ALLOWED_STATUSES = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "READY_FOR_PICKUP", "COMPLETED", "CANCELLED"] as const;
 
 export type OrderItemRow = {
   id: string;
@@ -23,7 +23,15 @@ export type OrderRow = {
   items: OrderItemRow[];
 };
 
-export async function createOrder(): Promise<
+export type ShippingInput = {
+  shippingName?: string;
+  shippingAddress?: string;
+  shippingCity?: string;
+  shippingPostalCode?: string;
+  shippingPhone?: string;
+};
+
+export async function createOrder(shipping?: ShippingInput | null): Promise<
   { ok: true; orderId: string } | { ok: false; error: string }
 > {
   const { userId } = await auth();
@@ -31,12 +39,19 @@ export async function createOrder(): Promise<
     return { ok: false, error: "Πρέπει να είστε συνδεδεμένοι." };
   }
 
-  const cart = await getCart();
-  if (cart.length === 0) {
+  const cartRows = await prisma.cartItem.findMany({
+    where: { userId },
+    orderBy: { createdAt: "asc" },
+    include: {
+      supplierStock: { include: { supplier: true } },
+    },
+  });
+
+  if (cartRows.length === 0) {
     return { ok: false, error: "Το καλάθι είναι άδειο." };
   }
 
-  const totalPrice = cart.reduce(
+  const totalPrice = cartRows.reduce(
     (sum, i) => sum + i.price * 1.24 * i.quantity,
     0,
   );
@@ -48,10 +63,16 @@ export async function createOrder(): Promise<
           userId,
           status: "PENDING",
           totalPrice,
+          shippingName: shipping?.shippingName?.trim() || null,
+          shippingAddress: shipping?.shippingAddress?.trim() || null,
+          shippingCity: shipping?.shippingCity?.trim() || null,
+          shippingPostalCode: shipping?.shippingPostalCode?.trim() || null,
+          shippingPhone: shipping?.shippingPhone?.trim() || null,
         },
       });
+
       await tx.orderItem.createMany({
-        data: cart.map((item) => ({
+        data: cartRows.map((item) => ({
           orderId: newOrder.id,
           masterProductId: item.masterProductId,
           partNumber: item.partNumber,
@@ -60,9 +81,57 @@ export async function createOrder(): Promise<
           quantity: item.quantity,
         })),
       });
+
+      const bySupplier = new Map<string, typeof cartRows>();
+      for (const item of cartRows) {
+        if (item.supplierStock?.supplierId) {
+          const sid = item.supplierStock.supplierId;
+          if (!bySupplier.has(sid)) bySupplier.set(sid, []);
+          bySupplier.get(sid)!.push(item);
+        }
+      }
+
+      for (const [supplierId, items] of bySupplier) {
+        const subTotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+        const subOrder = await tx.subOrder.create({
+          data: {
+            orderId: newOrder.id,
+            supplierId,
+            status: "PENDING",
+            totalPrice: subTotal,
+          },
+        });
+        await tx.subOrderItem.createMany({
+          data: items.map((item) => ({
+            subOrderId: subOrder.id,
+            masterProductId: item.masterProductId,
+            partNumber: item.partNumber,
+            description: item.description,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+        });
+      }
+
       await tx.cartItem.deleteMany({ where: { userId } });
       return newOrder;
     });
+
+    const subOrdersWithSupplier = await prisma.subOrder.findMany({
+      where: { orderId: order.id },
+      include: { supplier: true, items: true },
+    });
+    for (const sub of subOrdersWithSupplier) {
+      if (sub.supplier.email?.trim()) {
+        const productNames = sub.items.map((i) => i.description);
+        await sendSupplierOrderNotification(
+          sub.supplier.email.trim(),
+          sub.supplier.name,
+          productNames,
+        );
+      }
+    }
+
     return { ok: true, orderId: order.id };
   } catch (e) {
     console.error("[orders] createOrder:", e);

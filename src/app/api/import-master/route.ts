@@ -163,11 +163,6 @@ export async function POST(request: NextRequest) {
         skipDuplicates: true,
       });
       processed += chunk.length;
-      const chunkNum = Math.floor(i / CHUNK_SIZE) + 1;
-      const totalChunks = Math.ceil(records.length / CHUNK_SIZE);
-      console.log(
-        `[import-master] Chunk ${chunkNum}/${totalChunks}: processed items ${i + 1}-${i + chunk.length} (${chunk.length} items)`,
-      );
     }
 
     // After the import loop, create an UpdateLog record (category + brand for audit trail)
