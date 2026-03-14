@@ -131,7 +131,6 @@ export default function DashboardClient({
           win.sessionStorage.getItem(STORAGE_KEY) ?? win.localStorage.getItem(STORAGE_KEY);
 
         if (!rawSession) {
-          router.replace("/login");
           return;
         }
 
@@ -145,7 +144,6 @@ export default function DashboardClient({
         if (!parsed?.email || !parsed?.code) {
           win.sessionStorage.removeItem(STORAGE_KEY);
           win.localStorage.removeItem(STORAGE_KEY);
-          router.replace("/login");
           return;
         }
 
