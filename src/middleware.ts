@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/register(.*)",
+  "/api/verify-afm",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

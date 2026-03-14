@@ -64,7 +64,7 @@ export function Pricing() {
             ))}
           </ul>
           <Link
-            href="/sign-up"
+            href="/register"
             className="mt-8 inline-flex w-full justify-center rounded-xl border-2 border-slate-600 bg-slate-800/50 px-4 py-3 text-center font-semibold text-white transition-colors hover:border-slate-500 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-950"
           >
             Ξεκινήστε δωρεάν
@@ -96,7 +96,7 @@ export function Pricing() {
             ))}
           </ul>
           <Link
-            href="/sign-up"
+            href="/register"
             className="mt-8 inline-flex w-full justify-center rounded-xl bg-indigo-600 px-4 py-3 text-center font-semibold text-white shadow-[0_0_25px_rgba(99,102,241,0.4)] transition-all hover:bg-indigo-500 hover:shadow-[0_0_35px_rgba(99,102,241,0.55)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
           >
             Αναβάθμιση σε PRO

@@ -59,7 +59,7 @@ export default function LandingPage() {
             transition={{ ...fadeInUp.transition, delay: 0.2 }}
           >
             <Link
-              href="/sign-up"
+              href="/register"
               className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-8 py-4 text-base font-semibold text-white shadow-[0_0_25px_rgba(99,102,241,0.4)] transition-all hover:bg-indigo-500 hover:shadow-[0_0_35px_rgba(99,102,241,0.55)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
             >
               Δωρεάν Εγγραφή
