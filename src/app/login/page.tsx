@@ -1,36 +1,10 @@
-"use client";
+import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
+import { SignIn } from "@clerk/nextjs";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { SignIn, useAuth } from "@clerk/nextjs";
-import { Loader2 } from "lucide-react";
-
-export default function LoginPage() {
-  const router = useRouter();
-  const { isLoaded, userId } = useAuth();
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (userId) {
-      router.replace("/dashboard");
-    }
-  }, [isLoaded, userId, router]);
-
-  if (!isLoaded) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-500" aria-hidden />
-      </div>
-    );
-  }
-
-  if (userId) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-500" aria-hidden />
-      </div>
-    );
-  }
+export default async function LoginPage() {
+  const { userId } = await auth();
+  if (userId) redirect("/dashboard");
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-4 py-12">
