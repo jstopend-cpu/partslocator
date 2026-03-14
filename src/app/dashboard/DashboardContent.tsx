@@ -39,6 +39,7 @@ export default function DashboardContent() {
       })
       .then(({ data, total }) => {
         const raw = Array.isArray(data) ? data : Array.isArray(data?.products) ? data.products : [];
+        console.log("[Dashboard] Products response:", { totalCount: total, page: pageNum, itemsReturned: raw.length });
         const list = raw.map((p: { id: string; partNumber?: string; name: string; officialMsrp?: number; updatedAt?: string; stocks?: Array<{ supplier?: { name?: string }; supplierPrice?: number; quantity?: number; updatedAt?: string }> }) => {
           const first = p.stocks?.[0];
           return {

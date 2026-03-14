@@ -110,12 +110,18 @@ export default function LoginPage() {
             <div className="h-px flex-1 bg-slate-700" />
           </div>
 
-          <div className="mt-5 text-center">
+          <div className="mt-5 space-y-3">
             <Link
               href="/sign-in"
               className="inline-flex w-full items-center justify-center rounded-xl border border-slate-600 bg-slate-800/50 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-800"
             >
               Σύνδεση με email
+            </Link>
+            <Link
+              href="/dashboard"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+            >
+              Είσοδος στο Dashboard
             </Link>
           </div>
         </div>

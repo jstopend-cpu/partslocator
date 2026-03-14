@@ -342,9 +342,11 @@ export default function DashboardClient({
         </div>
       </header>
 
-      <main className="flex-1">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-4 md:px-6 md:py-6 lg:flex-row">
-          <div className="flex-1 space-y-6">
+      <main className="flex-1 bg-slate-950">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8 lg:flex-row">
+          <div className="flex-1">
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 shadow-xl backdrop-blur">
+            <div className="space-y-6 p-6 md:p-8">
             <section className="space-y-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="space-y-1">
@@ -500,7 +502,73 @@ export default function DashboardClient({
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {/* Desktop: clean table */}
+            <div className="hidden overflow-hidden rounded-xl border border-slate-800 md:block">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-800/60 text-xs font-medium uppercase tracking-wider text-slate-400">
+                    <th className="px-4 py-3">Προϊόν / EAN</th>
+                    <th className="px-4 py-3">Προμηθευτής</th>
+                    <th className="px-4 py-3 text-right">Τιμή B2B</th>
+                    <th className="px-4 py-3 text-center">Απόθεμα</th>
+                    <th className="px-4 py-3 w-32 text-right">Ενέργεια</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {!error &&
+                    Array.isArray(filteredProducts) &&
+                    filteredProducts.map((product) => {
+                      const stockStyles = getStockBadgeStyles(product.stock);
+                      const inStockBool = product.stock > 0;
+                      return (
+                        <tr
+                          key={product.id}
+                          className="bg-slate-900/30 transition-colors hover:bg-slate-800/40"
+                        >
+                          <td className="px-4 py-3">
+                            <div>
+                              <p className="font-medium text-slate-100">{product.name}</p>
+                              <p className="font-mono text-[11px] text-slate-500">EAN: {product.ean}</p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <BrandBadge brand={product.supplier} />
+                          </td>
+                          <td className="px-4 py-3 text-right font-medium text-emerald-300">
+                            {formatPrice(product.price)}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={stockStyles.container}>
+                              {inStockBool ? (
+                                <CheckCircle2 className={stockStyles.iconClass} aria-hidden />
+                              ) : (
+                                <AlertTriangle className={stockStyles.iconClass} aria-hidden />
+                              )}
+                              <span className="text-xs">{stockStyles.label}</span>
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              type="button"
+                              className="rounded-lg border border-emerald-500/60 bg-emerald-600/10 px-3 py-1.5 text-xs font-medium text-emerald-200 transition-colors hover:bg-emerald-600/25 disabled:cursor-not-allowed disabled:opacity-60"
+                              onClick={() => {
+                                if (!inStockBool) return;
+                                handleAddToCart(product);
+                              }}
+                              disabled={!inStockBool}
+                            >
+                              Προσθήκη
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile: card grid */}
+            <div className="grid gap-4 sm:grid-cols-2 md:hidden xl:grid-cols-3">
               {!error &&
                 Array.isArray(filteredProducts) &&
                 filteredProducts.map((product) => {
@@ -509,7 +577,7 @@ export default function DashboardClient({
                   return (
                     <article
                       key={product.id}
-                      className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-900/90 p-4 shadow-sm transition-transform transition-colors hover:-translate-y-0.5 hover:border-emerald-500/40 hover:bg-slate-900"
+                      className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-900/90 p-4 shadow-sm transition-colors hover:border-emerald-500/40 hover:bg-slate-900"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1.5">
@@ -540,41 +608,29 @@ export default function DashboardClient({
                           )}
                           <span>{stockStyles.label}</span>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <p className="text-[11px] text-slate-500">
-                            Τελευταία ενημέρωση:{" "}
-                            <span className="font-medium text-slate-300">
-                              {new Date(product.updatedAt).toLocaleString("el-GR", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          </p>
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/60 bg-emerald-600/10 px-3 py-1.5 text-xs font-medium text-emerald-200 shadow-sm transition-colors hover:bg-emerald-600/25 disabled:cursor-not-allowed disabled:opacity-60"
-                            onClick={() => {
-                              if (!inStockBool) return;
-                              handleAddToCart(product);
-                            }}
-                            disabled={!inStockBool}
-                          >
-                            <ShoppingCart className="h-3.5 w-3.5" aria-hidden />
-                            <span>Προσθήκη σε αίτημα</span>
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/60 bg-emerald-600/10 px-3 py-1.5 text-xs font-medium text-emerald-200 transition-colors hover:bg-emerald-600/25 disabled:cursor-not-allowed disabled:opacity-60"
+                          onClick={() => {
+                            if (!inStockBool) return;
+                            handleAddToCart(product);
+                          }}
+                          disabled={!inStockBool}
+                        >
+                          <ShoppingCart className="h-3.5 w-3.5" aria-hidden />
+                          <span>Προσθήκη σε αίτημα</span>
+                        </button>
                       </div>
                     </article>
                   );
                 })}
             </div>
           </section>
+            </div>
+          </div>
           </div>
 
-          <aside className="mt-4 w-full space-y-3 rounded-xl border border-slate-800 bg-slate-950/80 p-4 text-xs text-slate-200 shadow-lg lg:mt-0 lg:w-80">
+          <aside className="w-full space-y-3 rounded-xl border border-slate-800 bg-slate-950/80 p-4 text-xs text-slate-200 shadow-lg lg:mt-0 lg:w-80">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
