@@ -80,6 +80,13 @@ export default function DashboardContent() {
 
   useEffect(() => {
     if (!isLoaded) return;
+    if (!search.trim()) {
+      setDashboardData([]);
+      setTotalCount(0);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     const cleanup = loadProducts(page, search);
     return () => {
       if (typeof cleanup === "function") cleanup();
@@ -129,7 +136,7 @@ export default function DashboardContent() {
     );
   }
 
-  if (loading) {
+  if (loading && search.trim()) {
     return <div className="p-10">Φόρτωση...</div>;
   }
 
@@ -148,14 +155,12 @@ export default function DashboardContent() {
     );
   }
 
-  if (safeProductsList.length === 0) {
+  /* Only show "no products" when user has searched and got 0 results. Otherwise render DashboardClient (initial state or with data). */
+  if (safeProductsList.length === 0 && search.trim()) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 py-12">
         <p className="max-w-md text-center text-slate-300">
-          Δεν βρέθηκαν προϊόντα. Ξεκινήστε προσθέτοντας το πρώτο σας ανταλλακτικό!
-        </p>
-        <p className="text-sm text-slate-500">
-          Μπορείτε να εισάγετε δεδομένα από το Admin ή να τρέξετε το seed της βάσης.
+          Δεν βρέθηκαν προϊόντα για &quot;{search}&quot;. Δοκίμαστε άλλο όρο αναζήτησης.
         </p>
       </div>
     );
@@ -170,7 +175,7 @@ export default function DashboardContent() {
       suppliers={Array.isArray(suppliers) ? suppliers : []}
       searchTerm={search}
       onSearchChange={(q) => {
-        const query = q ? `?page=1&q=${encodeURIComponent(q)}` : "?page=1";
+        const query = q.trim() ? `?page=1&q=${encodeURIComponent(q.trim())}` : "";
         router.replace(`/dashboard${query}`);
       }}
       onPageChange={(newPage) => {
