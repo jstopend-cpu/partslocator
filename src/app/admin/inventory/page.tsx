@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Upload, Loader2, Package, Building2, History, Plus } from "lucide-react";
+import { Upload, Loader2, Package, Building2, History, Plus, Trash2, Pencil, Check, X } from "lucide-react";
 import { getInventoryStats } from "@/app/actions/orders";
 import { getLatestUpdateLog, type LatestUpdateLog } from "@/app/actions/update-log";
 import {
   getCategories,
   getBrandsByCategory,
   addBrand,
+  updateBrandName,
+  deleteBrand,
+  deleteCategory,
   type CategoryRow,
   type BrandRow,
 } from "@/app/actions/categories";
@@ -26,6 +29,12 @@ export default function AdminInventoryPage() {
   const [newBrandCategoryId, setNewBrandCategoryId] = useState<string>("");
   const [newBrandName, setNewBrandName] = useState("");
   const [addingBrand, setAddingBrand] = useState(false);
+  const [manageBrandsList, setManageBrandsList] = useState<BrandRow[]>([]);
+  const [deletingBrandId, setDeletingBrandId] = useState<string | null>(null);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
+  const [editingBrandId, setEditingBrandId] = useState<string | null>(null);
+  const [editingBrandName, setEditingBrandName] = useState("");
+  const [savingBrandId, setSavingBrandId] = useState<string | null>(null);
 
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
   const selectedBrand = brands.find((b) => b.id === selectedBrandId);
@@ -53,6 +62,14 @@ export default function AdminInventoryPage() {
       setSelectedBrandId("");
     });
   }, [selectedCategoryId]);
+
+  useEffect(() => {
+    if (!newBrandCategoryId.trim()) {
+      setManageBrandsList([]);
+      return;
+    }
+    getBrandsByCategory(newBrandCategoryId).then(setManageBrandsList);
+  }, [newBrandCategoryId]);
 
   const fetchLatestUpdate = useCallback(async (brandId: string) => {
     if (!brandId.trim()) {
@@ -86,11 +103,81 @@ export default function AdminInventoryPage() {
         return;
       }
       setNewBrandName("");
+      getBrandsByCategory(newBrandCategoryId).then(setManageBrandsList);
       if (newBrandCategoryId === selectedCategoryId) {
         getBrandsByCategory(selectedCategoryId).then(setBrands);
       }
     } finally {
       setAddingBrand(false);
+    }
+  };
+
+  const handleEditBrand = (b: BrandRow) => {
+    setEditingBrandId(b.id);
+    setEditingBrandName(b.name);
+  };
+
+  const handleCancelEditBrand = () => {
+    setEditingBrandId(null);
+    setEditingBrandName("");
+  };
+
+  const handleSaveBrandName = async () => {
+    if (!editingBrandId || !editingBrandName.trim()) return;
+    setSavingBrandId(editingBrandId);
+    try {
+      const result = await updateBrandName(editingBrandId, editingBrandName.trim());
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      setEditingBrandId(null);
+      setEditingBrandName("");
+      if (newBrandCategoryId) getBrandsByCategory(newBrandCategoryId).then(setManageBrandsList);
+      if (selectedCategoryId) getBrandsByCategory(selectedCategoryId).then(setBrands);
+    } finally {
+      setSavingBrandId(null);
+    }
+  };
+
+  const handleDeleteBrand = async (brandId: string) => {
+    if (!window.confirm("Διαγραφή αυτού του brand; Τα σχετικά UpdateLog θα χάσουν την αναφορά στο brand.")) return;
+    setDeletingBrandId(brandId);
+    try {
+      const result = await deleteBrand(brandId);
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      if (newBrandCategoryId) getBrandsByCategory(newBrandCategoryId).then(setManageBrandsList);
+      if (selectedCategoryId) getBrandsByCategory(selectedCategoryId).then(setBrands);
+      if (selectedBrandId === brandId) setSelectedBrandId("");
+    } finally {
+      setDeletingBrandId(null);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (!window.confirm("Διαγραφή κατηγορίας; Θα διαγραφούν και όλα τα brands της. Οι εγγραφές UpdateLog θα παραμείνουν με κατηγορία/brand null.")) return;
+    setDeletingCategoryId(categoryId);
+    try {
+      const result = await deleteCategory(categoryId);
+      if (!result.ok) {
+        alert(result.error);
+        return;
+      }
+      getCategories().then(setCategories);
+      if (selectedCategoryId === categoryId) {
+        setSelectedCategoryId("");
+        setBrands([]);
+        setSelectedBrandId("");
+      }
+      if (newBrandCategoryId === categoryId) {
+        setNewBrandCategoryId("");
+        setManageBrandsList([]);
+      }
+    } finally {
+      setDeletingCategoryId(null);
     }
   };
 
@@ -256,6 +343,132 @@ export default function AdminInventoryPage() {
               {addingBrand ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Προσθήκη
             </button>
+          </div>
+          {newBrandCategoryId && (
+            <div className="mt-4 max-w-md">
+              <p className="mb-2 text-xs font-medium text-slate-500">Brands στην κατηγορία</p>
+              {manageBrandsList.length === 0 ? (
+                <p className="text-sm text-slate-500">Δεν υπάρχουν ακόμα brands.</p>
+              ) : (
+                <ul className="space-y-1.5 rounded-lg border border-slate-700/80 bg-slate-800/40 p-2">
+                  {manageBrandsList.map((b) => (
+                    <li
+                      key={b.id}
+                      className="flex items-center justify-between gap-2 rounded px-2 py-1.5 text-sm text-slate-200 transition-colors hover:bg-slate-700/50"
+                    >
+                      {editingBrandId === b.id ? (
+                        <>
+                          <input
+                            type="text"
+                            value={editingBrandName}
+                            onChange={(e) => setEditingBrandName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSaveBrandName();
+                              if (e.key === "Escape") handleCancelEditBrand();
+                            }}
+                            className="min-w-0 flex-1 rounded border border-slate-600 bg-slate-800 px-2 py-1 text-slate-100 outline-none transition-colors focus:border-blue-500"
+                            autoFocus
+                            aria-label="Νέο όνομα brand"
+                          />
+                          <div className="flex shrink-0 items-center gap-0.5">
+                            <button
+                              type="button"
+                              onClick={handleSaveBrandName}
+                              disabled={savingBrandId === b.id || !editingBrandName.trim()}
+                              title="Αποθήκευση"
+                              className="rounded p-1 text-emerald-400/90 transition-colors hover:bg-emerald-500/20 hover:text-emerald-300 disabled:opacity-50"
+                              aria-label="Αποθήκευση"
+                            >
+                              {savingBrandId === b.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCancelEditBrand}
+                              disabled={savingBrandId === b.id}
+                              title="Ακύρωση"
+                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-600 hover:text-slate-200 disabled:opacity-50"
+                              aria-label="Ακύρωση"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="min-w-0 flex-1 truncate">{b.name}</span>
+                          <div className="flex shrink-0 items-center gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleEditBrand(b)}
+                              disabled={!!editingBrandId || deletingBrandId === b.id}
+                              title="Επεξεργασία"
+                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-600 hover:text-slate-200 disabled:opacity-50"
+                              aria-label={`Επεξεργασία ${b.name}`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBrand(b.id)}
+                              disabled={deletingBrandId === b.id || !!editingBrandId}
+                              title="Διαγραφή brand"
+                              className="rounded p-1 text-red-400/90 transition-colors hover:bg-red-500/20 hover:text-red-300 disabled:opacity-50"
+                              aria-label={`Διαγραφή ${b.name}`}
+                            >
+                              {deletingBrandId === b.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* Manage Categories */}
+        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+          <h2 className="mb-2 text-lg font-semibold text-slate-200">
+            Διαχείριση Κατηγοριών
+          </h2>
+          <p className="mb-4 text-sm text-slate-500">
+            Οι κύριες κατηγορίες (AUTO, TRUCKS, MOTO, MARINE) μπορούν να διαγραφούν. Η διαγραφή κατηγορίας διαγράφει και όλα τα brands της.
+          </p>
+          <div className="max-w-md">
+            <ul className="space-y-1.5 rounded-lg border border-slate-700/80 bg-slate-800/40 p-2">
+              {categories.map((c) => (
+                <li
+                  key={c.id}
+                  className="flex items-center justify-between gap-2 rounded px-2 py-1.5 text-sm text-slate-200 hover:bg-slate-700/50"
+                >
+                  <span>{c.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCategory(c.id)}
+                    disabled={deletingCategoryId === c.id}
+                    title="Διαγραφή κατηγορίας"
+                    className="rounded p-1 text-red-400/90 transition-colors hover:bg-red-500/20 hover:text-red-300 disabled:opacity-50"
+                    aria-label={`Διαγραφή ${c.name}`}
+                  >
+                    {deletingCategoryId === c.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
