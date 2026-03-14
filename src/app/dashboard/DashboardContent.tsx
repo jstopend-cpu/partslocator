@@ -62,12 +62,11 @@ export default function DashboardContent() {
   }, []);
 
   useEffect(() => {
-    if (!isLoaded) return;
     const cleanup = loadProducts(page, search);
     return () => {
       if (typeof cleanup === "function") cleanup();
     };
-  }, [isLoaded, page, search, loadProducts]);
+  }, [page, search, loadProducts]);
 
   const safeProductsList = useMemo(
     () => (Array.isArray(dashboardData) ? dashboardData : []) as DashboardProduct[],
