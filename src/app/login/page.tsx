@@ -1,198 +1,137 @@
- "use client";
+"use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, KeyRound, CheckSquare, LogIn } from "lucide-react";
+import { useAuth, useSignIn } from "@clerk/nextjs";
+import { Loader2 } from "lucide-react";
 
-type CustomerSession = {
-  name: string;
-  email: string;
-  code: string;
-  remember: boolean;
-};
+function GoogleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="currentColor"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      />
+      <path
+        fill="currentColor"
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+      />
+      <path
+        fill="currentColor"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      />
+    </svg>
+  );
+}
 
-const STORAGE_KEY = "pl_customer_session";
+function AppleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+    </svg>
+  );
+}
 
-export default function CustomerLoginPage() {
+export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [customerCode, setCustomerCode] = useState("");
-  const [remember, setRemember] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { isSignedIn, isLoaded } = useAuth();
+  const signIn = useSignIn();
 
   useEffect(() => {
-    try {
-      if (typeof window === "undefined") return;
-
-      const rawSession =
-        window.sessionStorage.getItem(STORAGE_KEY) ??
-        window.localStorage.getItem(STORAGE_KEY);
-
-      if (rawSession) {
-        const parsed = JSON.parse(rawSession) as CustomerSession | null;
-        if (parsed?.email && parsed?.code) {
-          router.replace("/dashboard");
-        }
-      }
-    } catch {
-      // ignore malformed data
+    if (!isLoaded) return;
+    if (isSignedIn) {
+      router.replace("/dashboard");
     }
-  }, [router]);
+  }, [isLoaded, isSignedIn, router]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!email.trim() || !customerCode.trim()) {
-      setError("Συμπλήρωσε το email και τον κωδικό πελάτη.");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const normalizedCode = customerCode.trim().toUpperCase();
-      const customerName =
-        normalizedCode.length >= 3 ? `Customer ${normalizedCode}` : "B2B Customer";
-
-      const session: CustomerSession = {
-        name: customerName,
-        email: email.trim(),
-        code: normalizedCode,
-        remember,
-      };
-
-      if (typeof window !== "undefined") {
-        const payload = JSON.stringify(session);
-        if (remember) {
-          window.localStorage.setItem(STORAGE_KEY, payload);
-          window.sessionStorage.removeItem(STORAGE_KEY);
-        } else {
-          window.sessionStorage.setItem(STORAGE_KEY, payload);
-          window.localStorage.removeItem(STORAGE_KEY);
-        }
-      }
-
-      router.push("/dashboard");
-    } catch {
-      setError("Κάτι πήγε στραβά. Δοκίμασε ξανά.");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleSocialSignIn = async (strategy: "oauth_google" | "oauth_apple") => {
+    if (!signIn) return;
+    const redirectUrl = typeof window !== "undefined" ? `${window.location.origin}/sign-in/sso-callback` : "/sign-in/sso-callback";
+    const redirectUrlComplete = "/dashboard";
+    await signIn.authenticateWithRedirect({
+      strategy,
+      redirectUrl,
+      redirectUrlComplete,
+    });
   };
 
+  if (!isLoaded) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
+      </div>
+    );
+  }
+
+  if (isSignedIn) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 shadow-sm">
-            <LogIn className="h-5 w-5 text-emerald-400 mr-2" aria-hidden />
-            <span className="text-sm font-medium text-slate-200">
-              Parts Locator B2B Portal
-            </span>
-          </div>
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-white">
-            Είσοδος Πελάτη
+          <h1 className="text-2xl font-semibold tracking-tight text-white">
+            Σύνδεση
           </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Συνδέσου για να δεις διαθεσιμότητα, τιμές και να στείλεις αιτήματα.
+          <p className="mt-2 text-sm text-slate-400">
+            Συνδέσου για πρόσβαση στο Dashboard και στα B2B εργαλεία.
           </p>
         </div>
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 px-6 py-6 shadow-xl backdrop-blur">
-          {error && (
-            <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-              {error}
-            </div>
-          )}
-
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="space-y-1.5">
-              <label
-                htmlFor="email"
-                className="flex items-center justify-between text-xs font-medium text-slate-300"
-              >
-                <span>Email</span>
-              </label>
-              <div className="relative">
-                <Mail
-                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
-                  aria-hidden
-                />
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950/60 py-2.5 pl-10 pr-3 text-sm text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                  placeholder="service@garage-example.gr"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="customer-code"
-                className="flex items-center justify-between text-xs font-medium text-slate-300"
-              >
-                <span>Κωδικός Πελάτη</span>
-                <span className="text-[11px] uppercase tracking-wide text-slate-500">
-                  B2B ID
-                </span>
-              </label>
-              <div className="relative">
-                <KeyRound
-                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
-                  aria-hidden
-                />
-                <input
-                  id="customer-code"
-                  type="text"
-                  autoComplete="off"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950/60 py-2.5 pl-10 pr-3 text-sm text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                  placeholder="π.χ. GARAGE123"
-                  value={customerCode}
-                  onChange={(e) => setCustomerCode(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <label className="inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 rounded border border-slate-600 bg-slate-950 text-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                />
-                <span className="inline-flex items-center gap-1.5">
-                  <CheckSquare className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
-                  Απομνημόνευση σύνδεσης
-                </span>
-              </label>
-              <span className="text-[11px] text-slate-500">
-                Mock login – δεν απαιτούνται πραγματικά στοιχεία.
-              </span>
-            </div>
-
+          <div className="space-y-3">
             <button
-              type="submit"
-              disabled={isSubmitting}
-              className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-70"
+              type="button"
+              onClick={() => handleSocialSignIn("oauth_google")}
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-600 bg-slate-800/80 py-3 text-sm font-medium text-slate-100 transition-colors hover:border-slate-500 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
             >
-              <LogIn className="h-4 w-4" aria-hidden />
-              {isSubmitting ? "Γίνεται είσοδος..." : "Είσοδος στο Dashboard"}
+              <GoogleIcon className="h-5 w-5" />
+              Σύνδεση μέσω Google
             </button>
-          </form>
+            <button
+              type="button"
+              onClick={() => handleSocialSignIn("oauth_apple")}
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-700 bg-slate-950 py-3 text-sm font-medium text-white transition-colors hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+            >
+              <AppleIcon className="h-5 w-5 text-white" />
+              Σύνδεση μέσω Apple
+            </button>
+          </div>
+
+          <div className="mt-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-700" />
+            <span className="text-xs text-slate-500">ή</span>
+            <div className="h-px flex-1 bg-slate-700" />
+          </div>
+
+          <div className="mt-5 text-center">
+            <Link
+              href="/sign-in"
+              className="inline-flex w-full items-center justify-center rounded-xl border border-slate-600 bg-slate-800/50 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-800"
+            >
+              Σύνδεση με email
+            </Link>
+          </div>
         </div>
 
-        <p className="mt-4 text-center text-xs text-slate-500">
-          B2B πρόσβαση για επαγγελματίες μηχανικούς, συνεργεία και διανομείς ανταλλακτικών.
-        </p>
+        <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-4 text-center">
+          <p className="text-sm text-slate-400">
+            Δεν έχετε λογαριασμό;{" "}
+            <Link
+              href="/register"
+              className="font-semibold text-indigo-400 transition-colors hover:text-indigo-300"
+            >
+              Εγγραφή τώρα
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
 }
-

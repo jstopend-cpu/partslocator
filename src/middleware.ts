@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 // Landing (/), auth, register, and public APIs are public; /dashboard, /admin, etc. require auth
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/login(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/register(.*)",
