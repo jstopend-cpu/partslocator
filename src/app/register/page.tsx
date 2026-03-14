@@ -29,29 +29,60 @@ export default function RegisterPage() {
   const [verificationCode, setVerificationCode] = useState("");
   const [verifyCodeLoading, setVerifyCodeLoading] = useState(false);
 
-  const handleVerifyAfm = async () => {
-    const trimmed = afm.replace(/\s/g, "");
+  /** VAT: EL + 9 digits. AFM: 9 digits only. User cannot proceed to password step without verification. */
+  const canVerify =
+    /^EL\d{9}$/i.test(afm.replace(/\s/g, "")) || /^\d{9}$/.test(afm.replace(/\s/g, ""));
+
+  const handleVerifyVatOrAfm = async () => {
+    const trimmed = afm.replace(/\s/g, "").toUpperCase();
     if (!trimmed) return;
+    const useVies = trimmed.startsWith("EL") && trimmed.length === 11;
+    const useAfm = /^\d{9}$/.test(trimmed);
+
     setVerifyError(null);
     setVerifyLoading(true);
     try {
-      const res = await fetch("/api/verify-afm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ afm: trimmed }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setVerifyError(data?.error ?? "Σφάλμα επαλήθευσης ΑΦΜ.");
+      if (useVies) {
+        const res = await fetch("/api/verify-vies", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vat: trimmed }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          setVerifyError(data?.error ?? "Σφάλμα επαλήθευσης VAT.");
+          return;
+        }
+        setBusiness({
+          companyName: data.companyName,
+          activity: "—",
+          address: data.address,
+          isAutomotive: true,
+        });
+        setStep(2);
         return;
       }
-      setBusiness({
-        companyName: data.companyName,
-        activity: data.activity,
-        address: data.address,
-        isAutomotive: data.isAutomotive,
-      });
-      setStep(2);
+      if (useAfm) {
+        const res = await fetch("/api/verify-afm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ afm: trimmed }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          setVerifyError(data?.error ?? "Σφάλμα επαλήθευσης ΑΦΜ.");
+          return;
+        }
+        setBusiness({
+          companyName: data.companyName,
+          activity: data.activity,
+          address: data.address,
+          isAutomotive: data.isAutomotive,
+        });
+        setStep(2);
+        return;
+      }
+      setVerifyError("ΑΦΜ: 9 ψηφία. VAT: EL + 9 ψηφία (π.χ. EL123456789).");
     } catch (e) {
       setVerifyError("Σφάλμα δικτύου.");
     } finally {
@@ -92,13 +123,25 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!verificationCode.trim()) return;
     setVerifyCodeLoading(true);
+    setSubmitError(null);
     try {
       const result = await signUp!.attemptEmailAddressVerification({
         code: verificationCode.trim(),
       });
       if (result.status === "complete") {
         await setActive!({ session: result.createdSessionId });
-        router.push("/");
+        try {
+          await fetch("/api/send-welcome-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              businessName: business?.companyName ?? "",
+            }),
+          });
+        } catch (_) {}
+        router.replace("/sign-in?registered=1");
+        return;
       }
     } catch (err: unknown) {
       const msg = err && typeof err === "object" && "errors" in err
@@ -128,6 +171,31 @@ export default function RegisterPage() {
           ← Πίσω στην αρχική
         </Link>
 
+        {/* Progress: Step 1 ΑΦΜ, Step 2 Στοιχεία Λογαριασμού */}
+        <div className="mb-8 flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
+                step === 1 ? "bg-indigo-600 text-white" : "bg-slate-700 text-slate-300"
+              }`}
+            >
+              1
+            </span>
+            <span className="text-sm font-medium text-slate-300">ΑΦΜ</span>
+          </div>
+          <div className="h-px w-6 bg-slate-600" aria-hidden />
+          <div className="flex items-center gap-2">
+            <span
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
+                step >= 2 ? "bg-indigo-600 text-white" : "bg-slate-700 text-slate-500"
+              }`}
+            >
+              2
+            </span>
+            <span className="text-sm font-medium text-slate-300">Στοιχεία Λογαριασμού</span>
+          </div>
+        </div>
+
         <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
           Εγγραφή επαγγελματία
         </h1>
@@ -138,28 +206,30 @@ export default function RegisterPage() {
           {step === 4 && "Εισάγετε τον κωδικό που σας στείλαμε στο email."}
         </p>
 
-        {/* Step 1: Verify Business */}
+        {/* Step 1: Verify Business (VAT/ΑΦΜ) — cannot proceed to Step 2 without verification */}
         {step === 1 && (
           <div className="mt-8 space-y-4">
             <div>
               <label htmlFor="afm" className="mb-2 block text-sm font-medium text-slate-300">
-                ΑΦΜ <span className="text-red-400">*</span>
+                ΑΦΜ / VAT <span className="text-red-400">*</span>
               </label>
               <div className="flex gap-2">
                 <input
                   id="afm"
                   type="text"
-                  inputMode="numeric"
-                  maxLength={9}
                   value={afm}
-                  onChange={(e) => setAfm(e.target.value.replace(/\D/g, ""))}
-                  placeholder="9 ψηφία"
+                  onChange={(e) => {
+                    const v = e.target.value.toUpperCase().replace(/\s/g, "");
+                    if (/^EL\d{0,9}$/.test(v) || /^\d{0,9}$/.test(v) || v === "E" || v === "EL") setAfm(v);
+                  }}
+                  placeholder="9 ψηφία ή EL123456789"
                   className="w-full rounded-lg border border-slate-700 bg-slate-800/80 px-4 py-3 text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                  maxLength={11}
                 />
                 <button
                   type="button"
-                  onClick={handleVerifyAfm}
-                  disabled={verifyLoading || afm.replace(/\s/g, "").length !== 9}
+                  onClick={handleVerifyVatOrAfm}
+                  disabled={verifyLoading || !canVerify}
                   className="flex shrink-0 items-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50"
                 >
                   {verifyLoading ? (

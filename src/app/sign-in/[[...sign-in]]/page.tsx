@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { SignIn } from "@clerk/nextjs";
+import { RegisteredBanner } from "../RegisteredBanner";
 
 const appearance = {
   variables: {
@@ -27,12 +29,15 @@ const appearance = {
 export default function SignInPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#f9fafb] px-4 pb-24 pt-8 sm:px-6 sm:pb-28">
+      <Suspense fallback={null}>
+        <RegisteredBanner />
+      </Suspense>
       <div className="w-full max-w-[420px]">
         <SignIn
           appearance={appearance}
           routing="path"
           path="/sign-in"
-          signUpUrl="/sign-up"
+          signUpUrl="/register"
         />
       </div>
     </div>
