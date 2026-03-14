@@ -15,6 +15,7 @@ import { createOrder as createOrderAction } from "@/app/actions/orders";
 import { getSubscriptionTier, type SubscriptionTier } from "@/app/actions/subscription";
 import { UpgradeToPro } from "@/components/UpgradeToPro";
 import { PricingTableModal } from "@/components/PricingTableModal";
+import { ShopByBrandSidebar } from "@/components/layout/ShopByBrandSidebar";
 import {
   LayoutDashboard,
   Search,
@@ -262,6 +263,7 @@ export default function MarketplaceDashboardContent() {
               </Link>
             </div>
           )}
+          <ShopByBrandSidebar />
         </nav>
       </aside>
 
@@ -333,6 +335,9 @@ export default function MarketplaceDashboardContent() {
                   <span>Διαχείριση (Admin)</span>
                 </Link>
               )}
+              <div className="mt-4 border-t border-slate-800 pt-4" onClick={(e) => e.stopPropagation()}>
+                <ShopByBrandSidebar />
+              </div>
             </nav>
           </aside>
         </>
