@@ -14,9 +14,9 @@ export async function GET(request: NextRequest) {
       return Response.json({ error: "Μη εξουσιοδοτημένο." }, { status: 403 });
     }
     const { searchParams } = new URL(request.url);
-    const brand = searchParams.get("brand")?.trim() ?? null;
+    const brandId = searchParams.get("brandId")?.trim() ?? null;
     const latest = await prisma.updateLog.findFirst({
-      where: brand ? { brand } : undefined,
+      where: brandId ? { brandId } : undefined,
       orderBy: { createdAt: "desc" },
     });
     if (!latest) {
@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
     return Response.json({
       latest: {
         userName: latest.userName,
-        brand: latest.brand,
+        categoryName: latest.categoryName,
+        brandName: latest.brandName,
         createdAt: latest.createdAt.toISOString(),
       },
     });
