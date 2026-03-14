@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useSignUp } from "@clerk/nextjs";
+import { useSignUp, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, ArrowRight } from "lucide-react";
 
@@ -15,7 +15,8 @@ type VerifiedBusiness = {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { signUp, setActive, isLoaded } = useSignUp();
+  const { isLoaded, signUp } = useSignUp();
+  const { setActive } = useClerk();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [afm, setAfm] = useState("");
   const [verifyLoading, setVerifyLoading] = useState(false);
