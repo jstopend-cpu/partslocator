@@ -476,9 +476,15 @@ export default function MarketplaceDashboardContent() {
               ) : hasSearched && products.length === 0 ? (
                 <p className="p-6 text-sm text-slate-400">No parts found.</p>
               ) : !hasSearched ? (
-                <p className="p-6 text-sm text-slate-500">
-                  Πληκτρολόγησε τουλάχιστον 3 χαρακτήρες και πάτα Enter ή κλικ στο &quot;Αναζήτηση&quot; για να φορτώσεις αποτελέσματα.
-                </p>
+                <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+                  <Search className="h-12 w-12 shrink-0 text-slate-500 opacity-30" aria-hidden />
+                  <p className="text-sm font-medium text-slate-500">
+                    Πραγματοποιήστε μια αναζήτηση για να δείτε αποτελέσματα
+                  </p>
+                  <p className="max-w-sm text-xs text-slate-500">
+                    Αναζητήστε με κωδικό, περιγραφή ή επιλέξτε μάρκα από τη sidebar.
+                  </p>
+                </div>
               ) : (
                 <>
                   {subscriptionTier !== "PRO" && hasSearched && products.length > 0 && (
