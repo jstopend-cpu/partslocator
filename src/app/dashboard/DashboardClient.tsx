@@ -35,6 +35,29 @@ export type DashboardProduct = {
 
 const STORAGE_KEY = "pl_customer_session";
 
+const SHOP_BRANDS = [
+  "VW",
+  "Audi",
+  "Mercedes",
+  "BMW",
+  "Toyota",
+  "Ford",
+  "Opel",
+  "Honda",
+  "Directed",
+];
+
+const BRAND_LOGOS: Record<string, string> = {
+  VW: "https://upload.wikimedia.org/wikipedia/commons/6/6d/Volkswagen_logo_2019.svg",
+  Audi: "https://upload.wikimedia.org/wikipedia/commons/9/92/Audi-Logo_2016.svg",
+  Mercedes: "https://upload.wikimedia.org/wikipedia/commons/9/90/Mercedes-Logo.svg",
+  BMW: "https://upload.wikimedia.org/wikipedia/commons/4/44/BMW.svg",
+  Toyota: "https://upload.wikimedia.org/wikipedia/commons/e/e8/Toyota.svg",
+  Ford: "https://upload.wikimedia.org/wikipedia/commons/a/a0/Ford_Motor_Company_Logo.svg",
+  Opel: "https://upload.wikimedia.org/wikipedia/commons/9/93/Opel_logo_2017.svg",
+  Honda: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Honda_logo.svg",
+};
+
 const BrandBadge = ({ brand }: { brand: string }) => {
   const colors: Record<string, string> = {
     Toyota: "bg-red-600/20 text-red-400 border-red-500/30",
@@ -311,13 +334,14 @@ export default function DashboardClient({
     <div className="flex min-h-screen bg-slate-950 text-slate-100">
       {/* Left sidebar: slate-950 */}
       <aside className="flex w-56 flex-col border-r border-slate-800 bg-slate-950">
-        <div className="flex h-14 items-center border-b border-slate-800 px-4">
-          <span className="text-sm font-semibold text-white">PARTS LOCATOR</span>
+        <div className="border-b border-slate-800 px-4 py-4">
+          <p className="text-sm font-semibold text-white">Parts Marketplace</p>
+          <p className="text-xs text-slate-500">Master Catalog &amp; Suppliers</p>
         </div>
         <nav className="flex-1 space-y-0.5 p-3">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800/60"
+            className="flex items-center gap-2 rounded-lg bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200"
           >
             <PackageSearch className="h-4 w-4 shrink-0" aria-hidden />
             Dashboard
@@ -331,6 +355,9 @@ export default function DashboardClient({
           </Link>
         </nav>
         <div className="space-y-3 border-t border-slate-800 p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            Shop by Brand
+          </p>
           <select
             value={supplierFilter}
             onChange={(e) => {
@@ -387,29 +414,83 @@ export default function DashboardClient({
 
         <main className="flex-1 overflow-auto bg-slate-950">
           {!hasSearched ? (
-            <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center px-4 py-12">
-              <div className="w-full max-w-xl space-y-8">
+            <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center px-4 py-12">
+              <div className="w-full max-w-2xl space-y-8">
                 <h1 className="text-center text-2xl font-bold tracking-tight text-white">
                   PARTSLOCATOR
                 </h1>
-                <div className="relative">
-                  <Search
-                    className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
-                    aria-hidden
-                  />
-                  <input
-                    type="search"
-                    placeholder="Αναζήτηση με όνομα, κωδικό, EAN..."
-                    className="w-full rounded-xl border border-slate-700 bg-slate-900/90 py-3.5 pl-12 pr-4 text-base text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                    value={searchInput}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    autoFocus
-                  />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search
+                      className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
+                      aria-hidden
+                    />
+                    <input
+                      type="search"
+                      placeholder="Αναζήτηση με κωδικό, περιγραφή ή brand (min 3 χαρακτήρες)..."
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900/90 py-3.5 pl-12 pr-4 text-base text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && onSearchChange) onSearchChange(searchInput);
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onSearchChange?.(searchInput)}
+                    className="rounded-xl bg-indigo-600 px-5 py-3.5 text-sm font-medium text-white hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+                  >
+                    Αναζήτηση
+                  </button>
+                </div>
+                <section className="space-y-4">
+                  <h2 className="text-center text-sm font-semibold uppercase tracking-wider text-slate-400">
+                    Shop by Brand
+                  </h2>
+                  <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+                    {SHOP_BRANDS.map((brand) => {
+                      const logoUrl = BRAND_LOGOS[brand];
+                      return (
+                        <button
+                          key={brand}
+                          type="button"
+                          onClick={() => {
+                            setSearchInput(brand);
+                            onSearchChange?.(brand);
+                          }}
+                          className="flex flex-col items-center justify-center rounded-xl border border-slate-700 bg-slate-900/80 p-4 transition-colors hover:border-emerald-500/50 hover:bg-slate-800/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                        >
+                          {logoUrl ? (
+                            <img
+                              src={logoUrl}
+                              alt={brand}
+                              className="h-10 w-10 object-contain"
+                            />
+                          ) : (
+                            <span className="text-lg font-semibold text-slate-200">
+                              {brand}
+                            </span>
+                          )}
+                          <span className="mt-1 text-xs text-slate-500">{brand}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <Search className="h-12 w-12 text-slate-700" aria-hidden />
+                  <p className="text-sm text-slate-500">
+                    Πραγματοποιήστε μια αναζήτηση για να δείτε αποτελέσματα
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    Αναζητήστε με κωδικό, περιγραφή ή επιλέξτε μάρκα από τη sidebar.
+                  </p>
                 </div>
               </div>
             </div>
           ) : (
-          /* Search results: search bar, brand filter, table, cart */
           <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8 lg:flex-row">
             <div className="flex-1">
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 shadow-xl backdrop-blur">
