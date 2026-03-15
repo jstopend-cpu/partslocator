@@ -16,9 +16,9 @@ type VerifyResult =
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { signUp, setActive, isLoaded } = useSignUp();
+  const { signUp } = useSignUp();
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState(1);
   const [afm, setAfm] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [address, setAddress] = useState("");
@@ -28,6 +28,9 @@ export default function RegisterPage() {
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [emailCode, setEmailCode] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [codeLoading, setCodeLoading] = useState(false);
 
   async function handleVerify() {
     const raw = afm.replace(/\s/g, "");
@@ -59,53 +62,72 @@ export default function RegisterPage() {
     }
   }
 
+  async function finishSignUp() {
+    if (!signUp?.createdUserId) return;
+    const result = await completeRegistration(signUp.createdUserId, {
+      email,
+      companyName,
+      afm,
+    });
+    if (!result.ok) throw new Error(result.error);
+    await signUp.finalize({
+      navigate: () => {
+        router.push("/dashboard");
+        router.refresh();
+      },
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded || !signUp) return;
+    if (!signUp) return;
     setSubmitError(null);
     setSubmitLoading(true);
     try {
-      await signUp.create({
+      const { error } = await signUp.password({
         emailAddress: email,
         password,
       });
-      const sess = signUp.createdSessionId;
-      if (sess) {
-        await setActive!({ session: sess });
-      } else {
-        // e.g. email verification required
-        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-        setSubmitError("Στείλαμε κωδικό επιβεβαίωσης στο email σας. Εισάγετε τον κωδικό για να συνεχίσετε.");
-        setSubmitLoading(false);
+      if (error) {
+        setSubmitError(error.message ?? "Σφάλμα εγγραφής.");
         return;
       }
-
-      const user = signUp.createdUserId;
-      if (!user) {
-        setSubmitError("Δεν βρέθηκε αναγνωριστικό χρήστη.");
-        setSubmitLoading(false);
+      if (signUp.status === "complete") {
+        await finishSignUp();
         return;
       }
-
-      const result = await completeRegistration(user, {
-        email,
-        companyName,
-        afm,
-      });
-      if (!result.ok) {
-        setSubmitError(result.error);
-        setSubmitLoading(false);
+      if (
+        signUp.status === "missing_requirements" &&
+        signUp.unverifiedFields?.includes("email_address")
+      ) {
+        await signUp.verifications.sendEmailCode();
+        setStep(3);
         return;
       }
-      router.push("/dashboard");
-      router.refresh();
+      setSubmitError("Η εγγραφή απαιτεί επιπλέον βήματα. Δοκιμάστε ξανά.");
     } catch (err: unknown) {
-      const msg = err && typeof err === "object" && "errors" in err
-        ? (err as { errors: { message?: string }[] }).errors?.[0]?.message
-        : err instanceof Error ? err.message : "Σφάλμα εγγραφής.";
-      setSubmitError(String(msg));
+      setSubmitError(err instanceof Error ? err.message : "Σφάλμα εγγραφής.");
     } finally {
       setSubmitLoading(false);
+    }
+  }
+
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!signUp || !emailCode.trim()) return;
+    setCodeError(null);
+    setCodeLoading(true);
+    try {
+      await signUp.verifications.verifyEmailCode({ code: emailCode.trim() });
+      if (signUp.status === "complete") {
+        await finishSignUp();
+        return;
+      }
+      setCodeError("Άκυρος ή ληγμένος κωδικός. Δοκιμάστε ξανά.");
+    } catch (err: unknown) {
+      setCodeError(err instanceof Error ? err.message : "Σφάλμα επαλήθευσης.");
+    } finally {
+      setCodeLoading(false);
     }
   }
 
@@ -176,7 +198,7 @@ export default function RegisterPage() {
                   {verifyLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    "Επαλήθευση"
+                    "Έλεγχος"
                   )}
                 </button>
               </motion.div>
@@ -246,6 +268,51 @@ export default function RegisterPage() {
                         Ολοκλήρωση εγγραφής
                       </>
                     )}
+                  </button>
+                </div>
+              </motion.form>
+            )}
+
+            {step === 3 && (
+              <motion.form
+                key="step3"
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 12 }}
+                transition={{ duration: 0.2 }}
+                onSubmit={handleVerifyCode}
+                className="mt-8 space-y-6"
+              >
+                <p className="text-sm text-slate-400">
+                  Στείλαμε κωδικό επιβεβαίωσης στο <strong className="text-slate-200">{email}</strong>. Εισάγετε τον κωδικό παρακάτω.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300">Κωδικός επιβεβαίωσης</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={emailCode}
+                    onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="000000"
+                    className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3 text-center text-lg tracking-widest text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+                {codeError && <p className="text-sm text-red-400">{codeError}</p>}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="rounded-xl border border-slate-600 px-4 py-3 font-medium text-slate-300 transition-colors hover:bg-slate-800"
+                  >
+                    Πίσω
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={codeLoading}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-60"
+                  >
+                    {codeLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Επαλήθευση"}
                   </button>
                 </div>
               </motion.form>

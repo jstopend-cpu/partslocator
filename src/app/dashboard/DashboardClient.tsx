@@ -692,6 +692,12 @@ export default function DashboardClient({
               </div>
             )}
 
+            {isFreeUser && filteredProducts.length > 0 && (
+              <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-200">
+                Γίνετε Pro για να δείτε τον προμηθευτή και να παραγγείλετε.
+              </div>
+            )}
+
             <div className="flex items-center justify-between gap-3 text-xs text-slate-400">
               <span>
                 Εμφάνιση{" "}
