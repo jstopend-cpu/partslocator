@@ -223,6 +223,22 @@ model AuditLog {
   @@index([action])
 }
 
+// Real-time notifications for Admin / Team (bell + Notifications tab)
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // NEW_USER, SEARCH_LIMIT, NEW_ORDER, ADMIN_ACTION
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  // Optional: for SEARCH_LIMIT we avoid duplicate per user per day
+  targetUserId String? // e.g. userId when type = SEARCH_LIMIT
+
+  @@index([createdAt])
+  @@index([isRead])
+  @@index([type])
+  @@index([targetUserId, type, createdAt])
+}
+
 // Universal Importer: saved field mappings + options for reuse
 model ImportProfile {
   id          String   @id @default(cuid())

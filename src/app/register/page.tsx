@@ -131,6 +131,8 @@ export default function RegisterPage() {
       });
       if (result.status === "complete") {
         await setActive!({ session: result.createdSessionId });
+        const { notifyNewUser } = await import("@/app/actions/notifications");
+        await notifyNewUser();
         try {
           await fetch("/api/send-welcome-email", {
             method: "POST",

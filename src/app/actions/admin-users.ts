@@ -2,6 +2,8 @@
 
 import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/database/client";
+import { createNotification } from "@/app/actions/notifications-create";
+import { sendAdminCriticalEmail } from "@/lib/admin-email";
 
 const OWNER_EMAIL = "jstopend@gmail.com";
 
@@ -38,7 +40,7 @@ export async function isOwnerEmail(email: string): Promise<boolean> {
 
 export type AuditLogRow = { id: string; action: string; performedBy: string; targetUser: string; details: string; createdAt: Date };
 
-/** Create an audit log entry. performedBy is set from current user (name or email). */
+/** Create an audit log entry. performedBy is set from current user (name or email). Notifies Owner via Notification. */
 async function createAuditLog(action: string, targetUser: string, details: string): Promise<void> {
   try {
     const user = await currentUser();
@@ -48,12 +50,16 @@ async function createAuditLog(action: string, targetUser: string, details: strin
     await prisma.auditLog.create({
       data: { action, performedBy, targetUser, details },
     });
+    await createNotification("ADMIN_ACTION", details);
   } catch (e) {
     console.error("createAuditLog:", e);
   }
 }
 
-/** Log a dashboard search for the current user (for admin stats and activity log). */
+const DAILY_SEARCH_LIMIT = 100;
+const SEARCH_LIMIT_ALERT_THRESHOLD = 0.8; // 80%
+
+/** Log a dashboard search for the current user (for admin stats and activity log). Triggers SEARCH_LIMIT notification at 80%. */
 export async function logSearch(query: string): Promise<void> {
   const { userId } = await auth();
   const user = await currentUser();
@@ -67,6 +73,27 @@ export async function logSearch(query: string): Promise<void> {
         query: query.trim().slice(0, 500),
       },
     });
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const countToday = await prisma.searchLog.count({
+      where: { userId, createdAt: { gte: startOfToday } },
+    });
+    const threshold = Math.ceil(DAILY_SEARCH_LIMIT * SEARCH_LIMIT_ALERT_THRESHOLD);
+    if (countToday >= threshold) {
+      const alreadyNotified = await prisma.notification.findFirst({
+        where: {
+          type: "SEARCH_LIMIT",
+          targetUserId: userId,
+          createdAt: { gte: startOfToday },
+        },
+      });
+      if (!alreadyNotified) {
+        const display = userEmail || userId.slice(0, 8);
+        await createNotification("SEARCH_LIMIT", `Χρήστης ${display} έφτασε στο 80% του ορίου αναζητήσεων (${countToday}/${DAILY_SEARCH_LIMIT}).`, {
+          targetUserId: userId,
+        });
+      }
+    }
   } catch (e) {
     console.error("logSearch:", e);
   }
@@ -322,9 +349,11 @@ export async function createInvitation(email: string, role: string): Promise<Cre
     const performerName = ([performer?.firstName, performer?.lastName].filter(Boolean).join(" ").trim() || performer?.primaryEmailAddress?.emailAddress) ?? "—";
     const details = `Πρόσκληση για ${trimmed} με ρόλο ${roleNorm} από ${performerName}.`;
     await createAuditLog("INVITE", trimmed, details);
+    await sendAdminCriticalEmail("Νέα πρόσκληση μέλους ομάδας", details);
     return { ok: true };
   } catch (e) {
     console.error("createInvitation:", e);
+    await sendAdminCriticalEmail("Σφάλμα πρόσκλησης", String(e));
     return { ok: false, error: "Σφάλμα δημιουργίας πρόσκλησης." };
   }
 }

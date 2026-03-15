@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   getAdminUsersList,
   getAdminBrandsList,
@@ -18,6 +19,12 @@ import {
   type AuditLogRow,
 } from "@/app/actions/admin-users";
 import {
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  type NotificationRow,
+} from "@/app/actions/notifications";
+import {
   BarChart,
   Bar,
   XAxis,
@@ -26,7 +33,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { Loader2, ArrowLeft, Pencil, X, Check, Users, Search, TrendingUp, UserPlus, ClipboardList, UserX, UserCheck } from "lucide-react";
+import { Loader2, ArrowLeft, Pencil, X, Check, Users, Search, TrendingUp, UserPlus, ClipboardList, UserX, UserCheck, Bell, CheckCheck } from "lucide-react";
 
 const CHART_COLOR = "#3b82f6";
 
@@ -42,6 +49,13 @@ const INVITE_ROLE_OPTIONS = [
   { value: "support", label: "Support" },
   { value: "customer", label: "Member" },
 ] as const;
+
+const NOTIFICATION_ICONS: Record<string, string> = {
+  NEW_USER: "🆕",
+  SEARCH_LIMIT: "⚠️",
+  NEW_ORDER: "📦",
+  ADMIN_ACTION: "📝",
+};
 
 function RoleBadge({ role }: { role: string }) {
   const styles: Record<string, string> = {
@@ -78,9 +92,16 @@ export default function AdminPageClient({ currentRole }: Props) {
   const [inviteSending, setInviteSending] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [roleUpdatingId, setRoleUpdatingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"main" | "audit">("main");
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"main" | "audit" | "notifications">("main");
   const [auditLogsResult, setAuditLogsResult] = useState<Awaited<ReturnType<typeof getAuditLogs>> | null>(null);
+  const [notificationsResult, setNotificationsResult] = useState<Awaited<ReturnType<typeof getNotifications>> | null>(null);
   const [suspendLoadingId, setSuspendLoadingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "notifications") setActiveTab("notifications");
+  }, [searchParams]);
 
   const canEditRoles = currentRole === "owner" || currentRole === "admin";
   const canAddMember = currentRole === "owner" || currentRole === "admin";
@@ -104,6 +125,14 @@ export default function AdminPageClient({ currentRole }: Props) {
   useEffect(() => {
     if (activeTab === "audit" && isOwner) loadAudit();
   }, [activeTab, isOwner, loadAudit]);
+
+  const loadNotifications = useCallback(() => {
+    getNotifications(100).then(setNotificationsResult);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "notifications") loadNotifications();
+  }, [activeTab, loadNotifications]);
 
   useEffect(() => {
     load();
@@ -284,6 +313,18 @@ export default function AdminPageClient({ currentRole }: Props) {
               Δραστηριότητα Ομάδας
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setActiveTab("notifications")}
+            className={`flex items-center gap-2 rounded-t-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
+              activeTab === "notifications"
+                ? "border-orange-500/40 border-b-transparent bg-orange-500/10 text-orange-400"
+                : "border-transparent text-slate-400 hover:text-orange-300/80"
+            }`}
+          >
+            <Bell className="h-4 w-4" />
+            Ειδοποιήσεις
+          </button>
         </nav>
       </div>
 
@@ -347,6 +388,87 @@ export default function AdminPageClient({ currentRole }: Props) {
                 </tbody>
               </table>
             </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "notifications" && (
+        <section className="rounded-xl border border-orange-500/30 bg-slate-900/80 p-4">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-orange-400">
+            <Bell className="h-5 w-5" />
+            Ειδοποιήσεις συστήματος
+          </h2>
+          {notificationsResult === null ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-orange-500/70" />
+            </div>
+          ) : !notificationsResult.ok ? (
+            <p className="py-4 text-slate-400">
+              {"forbidden" in notificationsResult ? "Δεν έχετε πρόσβαση." : (notificationsResult as { error?: string }).error}
+            </p>
+          ) : notificationsResult.data.length === 0 ? (
+            <p className="py-8 text-center text-slate-500">Δεν υπάρχουν ειδοποιήσεις.</p>
+          ) : (
+            <>
+              <div className="mb-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const res = await markAllNotificationsRead();
+                    if (res.ok) loadNotifications();
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/80 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700"
+                >
+                  <CheckCheck className="h-4 w-4" />
+                  Σημείωση όλων ως αναγνωσμένων
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-700 text-xs font-medium uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-3 sm:px-6 sm:py-4 w-10">Τύπος</th>
+                      <th className="px-4 py-3 sm:px-6 sm:py-4">Μήνυμα</th>
+                      <th className="px-4 py-3 sm:px-6 sm:py-4">Ημερομηνία</th>
+                      <th className="px-4 py-3 sm:px-6 sm:py-4 w-24 text-right">Ενέργεια</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {notificationsResult.data.map((n: NotificationRow) => (
+                      <tr
+                        key={n.id}
+                        className={`transition-colors hover:bg-slate-800/40 ${!n.isRead ? "bg-slate-800/30" : "bg-slate-900/30"}`}
+                      >
+                        <td className="px-4 py-3 text-lg sm:px-6 sm:py-4" title={n.type}>
+                          {NOTIFICATION_ICONS[n.type] ?? "📌"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-200 sm:px-6 sm:py-4">{n.message}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-400 sm:px-6 sm:py-4">
+                          {new Date(n.createdAt).toLocaleString("el-GR", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })}
+                        </td>
+                        <td className="px-4 py-3 text-right sm:px-6 sm:py-4">
+                          {!n.isRead && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await markNotificationRead(n.id);
+                                loadNotifications();
+                              }}
+                              className="rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+                            >
+                              Σημείωση ως αναγνωσμένο
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </section>
       )}

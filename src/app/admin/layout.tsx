@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { ArrowLeft, BarChart3, Package, Loader2, Warehouse, Menu, X, FileInput, Truck, UserPlus, Users } from "lucide-react";
 import { canAccessAdmin } from "@/app/actions/b2b-registrations";
+import AdminHeader from "./AdminHeader";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Διαχείριση χρηστών", icon: Users },
@@ -165,18 +166,21 @@ export default function AdminLayout({
         </>
       )}
 
-      {/* Main: fixed top bar on mobile + content (pl-56 for fixed sidebar) */}
+      {/* Main: header (Bell + UserButton) + content (pl-56 for fixed sidebar) */}
       <div className="flex min-w-0 flex-1 flex-col pl-0 lg:pl-56">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-800 bg-slate-950/98 px-4 py-3 lg:hidden">
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:border-orange-500 hover:text-orange-300"
-            aria-label="Άνοιγμα μενού"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <span className="text-sm font-semibold text-slate-200">Admin</span>
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-800 bg-slate-950/98 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:border-orange-500 hover:text-orange-300 lg:hidden"
+              aria-label="Άνοιγμα μενού"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <span className="text-sm font-semibold text-slate-200">Admin</span>
+          </div>
+          <AdminHeader />
         </header>
         <div className="min-w-0 flex-1 p-4">{children}</div>
       </div>
