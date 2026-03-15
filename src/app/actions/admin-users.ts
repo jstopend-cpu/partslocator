@@ -5,12 +5,35 @@ import prisma from "@/database/client";
 
 const OWNER_EMAIL = "jstopend@gmail.com";
 
+export type AdminRole = "owner" | "admin" | "support" | null;
+
+/** True if user can access admin panel (owner, admin, or support). */
 export async function canAccessAdminPage(): Promise<boolean> {
   const user = await currentUser();
   if (!user) return false;
   const role = (user.publicMetadata as { role?: string } | undefined)?.role;
   const email = user.primaryEmailAddress?.emailAddress?.trim().toLowerCase();
-  return role === "admin" || email === OWNER_EMAIL.toLowerCase();
+  return (
+    email === OWNER_EMAIL.toLowerCase() ||
+    role === "admin" ||
+    role === "support"
+  );
+}
+
+/** Current user's admin role for permission checks. Support cannot edit users/brands. */
+export async function getCurrentAdminRole(): Promise<AdminRole> {
+  const user = await currentUser();
+  if (!user) return null;
+  const email = user.primaryEmailAddress?.emailAddress?.trim().toLowerCase();
+  if (email === OWNER_EMAIL.toLowerCase()) return "owner";
+  const role = (user.publicMetadata as { role?: string } | undefined)?.role;
+  if (role === "admin") return "admin";
+  if (role === "support") return "support";
+  return null;
+}
+
+export function isOwnerEmail(email: string): boolean {
+  return email?.trim().toLowerCase() === OWNER_EMAIL.toLowerCase();
 }
 
 /** Log a dashboard search for the current user (for admin stats and activity log). */
@@ -38,6 +61,7 @@ export type AdminUserRow = {
   email: string;
   role: string;
   allowedBrands: string[];
+  isOwner: boolean;
 };
 
 export type GetAdminUsersResult =
@@ -45,7 +69,7 @@ export type GetAdminUsersResult =
   | { ok: false; forbidden: true }
   | { ok: false; error: string };
 
-/** List all users for admin. Only allowed if current user is admin (role or owner email). */
+/** List all users for admin. Only allowed if current user is admin/owner/support. */
 export async function getAdminUsersList(): Promise<GetAdminUsersResult> {
   const allowed = await canAccessAdminPage();
   if (!allowed) return { ok: false, forbidden: true };
@@ -60,17 +84,20 @@ export async function getAdminUsersList(): Promise<GetAdminUsersResult> {
     const rows: AdminUserRow[] = users.map((u) => {
       const metadata = (u.publicMetadata as { allowedBrands?: string[]; role?: string } | undefined) ?? {};
       const allowedBrands = Array.isArray(metadata.allowedBrands) ? metadata.allowedBrands : [];
-      const role = typeof metadata.role === "string" ? metadata.role : "—";
+      const role = typeof metadata.role === "string" ? metadata.role : "";
       const firstName = u.firstName ?? "";
       const lastName = u.lastName ?? "";
       const name = [firstName, lastName].filter(Boolean).join(" ") || "—";
       const email = u.primaryEmailAddress?.emailAddress ?? (u as { emailAddresses?: { emailAddress?: string }[] }).emailAddresses?.[0]?.emailAddress ?? "—";
+      const isOwner = isOwnerEmail(email);
+      const displayRole = isOwner ? "owner" : (role || "customer");
       return {
         id: u.id,
         name,
         email,
-        role,
+        role: displayRole,
         allowedBrands,
+        isOwner,
       };
     });
 
@@ -98,25 +125,33 @@ export type UpdateUserBrandsResult =
   | { ok: false; forbidden: true }
   | { ok: false; error: string };
 
-/** Update a user's role and allowedBrands in Clerk publicMetadata. Only allowed if current user is admin. */
+/** Update a user's role and/or allowedBrands. Only owner can change another Admin's role. Support cannot call this. */
 export async function updateUserMetadata(
   userId: string,
-  data: { role?: string; allowedBrands: string[] }
+  data: { role?: string; allowedBrands?: string[] }
 ): Promise<UpdateUserBrandsResult> {
-  const allowed = await canAccessAdminPage();
-  if (!allowed) return { ok: false, forbidden: true };
+  const role = await getCurrentAdminRole();
+  if (!role || role === "support") return { ok: false, forbidden: true };
 
   try {
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
     const existing = (user.publicMetadata as Record<string, unknown>) ?? {};
-    await client.users.updateUserMetadata(userId, {
-      publicMetadata: {
-        ...existing,
-        ...(data.role !== undefined && { role: data.role }),
-        allowedBrands: data.allowedBrands,
-      },
-    });
+    const currentRole = (existing.role as string) || "";
+    const email = user.primaryEmailAddress?.emailAddress ?? "";
+
+    if (data.role !== undefined) {
+      if (isOwnerEmail(email)) return { ok: false, error: "Δεν μπορείτε να αλλάξετε το ρόλο του Owner." };
+      if (currentRole === "admin" && role !== "owner") return { ok: false, forbidden: true };
+    }
+
+    const nextMetadata: Record<string, unknown> = {
+      ...existing,
+      allowedBrands: data.allowedBrands !== undefined ? data.allowedBrands : (Array.isArray(existing.allowedBrands) ? existing.allowedBrands : []),
+    };
+    if (data.role !== undefined && !isOwnerEmail(email)) nextMetadata.role = data.role;
+
+    await client.users.updateUserMetadata(userId, { publicMetadata: nextMetadata });
     return { ok: true };
   } catch (e) {
     console.error("updateUserMetadata:", e);
@@ -130,6 +165,93 @@ export async function updateUserAllowedBrands(
   allowedBrands: string[]
 ): Promise<UpdateUserBrandsResult> {
   return updateUserMetadata(userId, { allowedBrands });
+}
+
+export type PendingInvitationRow = { id: string; email: string; role: string; createdAt: Date };
+
+export type GetPendingInvitationsResult =
+  | { ok: true; data: PendingInvitationRow[] }
+  | { ok: false; forbidden: true }
+  | { ok: false; error: string };
+
+export async function getPendingInvitations(): Promise<GetPendingInvitationsResult> {
+  const allowed = await canAccessAdminPage();
+  if (!allowed) return { ok: false, forbidden: true };
+  try {
+    const list = await prisma.pendingInvitation.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    return { ok: true, data: list };
+  } catch (e) {
+    console.error("getPendingInvitations:", e);
+    return { ok: false, error: "Σφάλμα φόρτωσης προσκλήσεων." };
+  }
+}
+
+export type CreateInvitationResult =
+  | { ok: true }
+  | { ok: false; forbidden: true }
+  | { ok: false; error: string };
+
+/** Create a pending invitation (email + role). Only owner or admin. User gets role when they sign up (sync). */
+export async function createInvitation(email: string, role: string): Promise<CreateInvitationResult> {
+  const currentRole = await getCurrentAdminRole();
+  if (currentRole !== "owner" && currentRole !== "admin") return { ok: false, forbidden: true };
+
+  const trimmed = email?.trim().toLowerCase();
+  if (!trimmed) return { ok: false, error: "Το email είναι υποχρεωτικό." };
+  const allowedRoles = ["admin", "support", "customer"];
+  const roleNorm = role === "member" ? "customer" : role;
+  if (!allowedRoles.includes(roleNorm)) return { ok: false, error: "Μη έγκυρος ρόλος." };
+
+  try {
+    await prisma.pendingInvitation.upsert({
+      where: { email: trimmed },
+      create: { email: trimmed, role: roleNorm },
+      update: { role: roleNorm },
+    });
+    return { ok: true };
+  } catch (e) {
+    console.error("createInvitation:", e);
+    return { ok: false, error: "Σφάλμα δημιουργίας πρόσκλησης." };
+  }
+}
+
+/** Apply pending invitations to existing users (set role) and remove from pending. Call on admin load. */
+export async function syncPendingInvitations(): Promise<{ ok: true; applied: number } | { ok: false }> {
+  const allowed = await canAccessAdminPage();
+  if (!allowed) return { ok: false };
+
+  try {
+    const pending = await prisma.pendingInvitation.findMany();
+    if (pending.length === 0) return { ok: true, applied: 0 };
+
+    const client = await clerkClient();
+    const { data: users } = await client.users.getUserList({ limit: 500 });
+    const emailToUser = new Map<string, { id: string; publicMetadata: Record<string, unknown> }>();
+    for (const u of users) {
+      const email = u.primaryEmailAddress?.emailAddress ?? (u as { emailAddresses?: { emailAddress?: string }[] }).emailAddresses?.[0]?.emailAddress;
+      if (email) emailToUser.set(email.trim().toLowerCase(), { id: u.id, publicMetadata: (u.publicMetadata as Record<string, unknown>) ?? {} });
+    }
+
+    let applied = 0;
+    for (const inv of pending) {
+      const user = emailToUser.get(inv.email);
+      if (!user) continue;
+      await client.users.updateUserMetadata(user.id, {
+        publicMetadata: {
+          ...user.publicMetadata,
+          role: inv.role,
+        },
+      });
+      await prisma.pendingInvitation.delete({ where: { id: inv.id } });
+      applied++;
+    }
+    return { ok: true, applied };
+  } catch (e) {
+    console.error("syncPendingInvitations:", e);
+    return { ok: false };
+  }
 }
 
 export type AdminStats = {

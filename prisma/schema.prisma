@@ -199,6 +199,17 @@ model SearchLog {
   @@index([userId])
 }
 
+// Team invitations: email + role; role applied when user signs up (sync on admin load)
+model PendingInvitation {
+  id        String   @id @default(cuid())
+  email     String
+  role      String   // admin | support | customer
+  createdAt DateTime @default(now())
+
+  @@unique([email])
+  @@index([email])
+}
+
 // Universal Importer: saved field mappings + options for reuse
 model ImportProfile {
   id          String   @id @default(cuid())
