@@ -328,36 +328,28 @@ export default function DashboardClient({
             <Package className="h-4 w-4 shrink-0" aria-hidden />
             Οι Παραγγελίες μου
           </Link>
+          <div className="space-y-2 pt-2">
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              SHOP BY BRAND
+            </p>
+            <select
+              value={supplierFilter}
+              onChange={(e) => {
+                setSupplierFilter(e.target.value);
+                if (page !== 1) router.push("/dashboard?page=1");
+              }}
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              aria-label="Επίλεξε brand"
+            >
+              <option value="all">Επίλεξε brand...</option>
+              {(suppliers || []).map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
         </nav>
-        <div className="mt-auto space-y-3 border-t border-slate-800 p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            SHOP BY BRAND
-          </p>
-          <select
-            value={supplierFilter}
-            onChange={(e) => {
-              setSupplierFilter(e.target.value);
-              if (page !== 1) router.push("/dashboard?page=1");
-            }}
-            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-            aria-label="Επίλεξε brand"
-          >
-            <option value="all">Επίλεξε brand...</option>
-            {(suppliers || []).map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800/60 hover:text-red-300"
-          >
-            <LogOut className="h-4 w-4 shrink-0" aria-hidden />
-            Αποσύνδεση
-          </button>
-        </div>
       </aside>
 
       {/* Main: header + content */}
@@ -365,7 +357,7 @@ export default function DashboardClient({
         <header className="flex items-center justify-end gap-3 border-b border-slate-800 bg-transparent px-4 py-3">
           <Link
             href="/dashboard"
-            className="relative inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 p-2 text-slate-200 hover:bg-slate-800"
+            className="relative flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 px-2 text-slate-200 hover:bg-slate-800"
             aria-label="Καλάθι"
           >
             <ShoppingCart className="h-5 w-5 shrink-0" aria-hidden />
@@ -377,7 +369,7 @@ export default function DashboardClient({
           </Link>
           <Link
             href="/dashboard/orders"
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
+            className="flex h-9 items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800"
           >
             <Package className="h-4 w-4 shrink-0" aria-hidden />
             Οι Παραγγελίες μου
@@ -385,23 +377,31 @@ export default function DashboardClient({
           {isAdmin && (
             <Link
               href="/admin"
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
+              className="flex h-9 items-center gap-2 rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800"
             >
               <Shield className="h-4 w-4 shrink-0" aria-hidden />
               Διαχείριση
             </Link>
           )}
           <UserButton appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="ml-1 flex h-9 items-center gap-2 rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-300 hover:border-red-500/40 hover:bg-red-950/30 hover:text-red-300"
+          >
+            <LogOut className="h-4 w-4 shrink-0" aria-hidden />
+            Αποσύνδεση
+          </button>
         </header>
 
         <main className="flex-1 overflow-auto bg-slate-950">
           {!hasSearched ? (
-            <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center px-4 py-12">
+            <div className="flex flex-col items-center px-4 pt-16 pb-12 sm:pt-20 sm:pb-16">
               <div className="w-full max-w-2xl space-y-8">
-                <h1 className="text-center text-3xl font-bold tracking-tight text-white md:text-4xl">
+                <h1 className="text-center text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
                   PARTSLOCATOR
                 </h1>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <div className="relative flex-1">
                     <Search
                       className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
@@ -422,12 +422,12 @@ export default function DashboardClient({
                   <button
                     type="button"
                     onClick={() => onSearchChange?.(searchInput)}
-                    className="rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+                    className="shrink-0 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-950"
                   >
                     Αναζήτηση
                   </button>
                 </div>
-                <div className="flex flex-col items-center justify-center gap-2 text-center">
+                <div className="flex flex-col items-center gap-2 text-center">
                   <p className="text-base font-medium text-slate-300">
                     Πραγματοποιήστε μια αναζήτηση για να δείτε αποτελέσματα
                   </p>
