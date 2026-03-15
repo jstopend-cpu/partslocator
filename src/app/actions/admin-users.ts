@@ -99,27 +99,29 @@ export async function getAdminUsersList(): Promise<GetAdminUsersResult> {
       orderBy: "-created_at",
     });
 
-    const rows: AdminUserRow[] = users.map((u) => {
-      const metadata = (u.publicMetadata as { allowedBrands?: string[]; role?: string; suspended?: boolean } | undefined) ?? {};
-      const allowedBrands = Array.isArray(metadata.allowedBrands) ? metadata.allowedBrands : [];
-      const role = typeof metadata.role === "string" ? metadata.role : "";
-      const suspended = metadata.suspended === true;
-      const firstName = u.firstName ?? "";
-      const lastName = u.lastName ?? "";
-      const name = [firstName, lastName].filter(Boolean).join(" ") || "—";
-      const email = u.primaryEmailAddress?.emailAddress ?? (u as { emailAddresses?: { emailAddress?: string }[] }).emailAddresses?.[0]?.emailAddress ?? "—";
-      const isOwner = await isOwnerEmail(email);
-      const displayRole = isOwner ? "owner" : (role || "customer");
-      return {
-        id: u.id,
-        name,
-        email,
-        role: displayRole,
-        allowedBrands,
-        isOwner,
-        suspended,
-      };
-    });
+    const rows: AdminUserRow[] = await Promise.all(
+      users.map(async (u) => {
+        const metadata = (u.publicMetadata as { allowedBrands?: string[]; role?: string; suspended?: boolean } | undefined) ?? {};
+        const allowedBrands = Array.isArray(metadata.allowedBrands) ? metadata.allowedBrands : [];
+        const role = typeof metadata.role === "string" ? metadata.role : "";
+        const suspended = metadata.suspended === true;
+        const firstName = u.firstName ?? "";
+        const lastName = u.lastName ?? "";
+        const name = [firstName, lastName].filter(Boolean).join(" ") || "—";
+        const email = u.primaryEmailAddress?.emailAddress ?? (u as { emailAddresses?: { emailAddress?: string }[] }).emailAddresses?.[0]?.emailAddress ?? "—";
+        const isOwner = await isOwnerEmail(email);
+        const displayRole = isOwner ? "owner" : (role || "customer");
+        return {
+          id: u.id,
+          name,
+          email,
+          role: displayRole,
+          allowedBrands,
+          isOwner,
+          suspended,
+        };
+      })
+    );
 
     return { ok: true, data: rows };
   } catch (e) {
