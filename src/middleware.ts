@@ -1,11 +1,14 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Ορίζουμε ποιες διαδρομές είναι δημόσιες (Landing page, sign-in, sign-up)
+// Public routes: landing, auth, help (for "Επικοινωνία με τις πωλήσεις" from landing)
 const isPublicRoute = createRouteMatcher([
-  '/', 
-  '/sign-in(.*)', 
+  '/',
+  '/sign-in',
+  '/sign-in(.*)',
+  '/sign-up',
   '/sign-up(.*)',
-  '/api/webhooks/clerk(.*)'
+  '/dashboard/help',
+  '/api/webhooks/clerk(.*)',
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

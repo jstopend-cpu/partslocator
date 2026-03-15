@@ -64,31 +64,16 @@ export default function LandingPage() {
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:py-32">
         {/* Hero */}
         <section className="text-center">
-          <motion.div
+          <motion.h1
+            className="mx-auto max-w-4xl text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl"
             initial={fadeInUp.initial}
             animate={fadeInUp.animate}
             transition={fadeInUp.transition}
-            className="mb-8"
           >
-            <h1
-              className="mx-auto max-w-4xl text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl"
-              style={{
-                textShadow: "0 0 60px rgba(59, 130, 246, 0.4), 0 0 120px rgba(59, 130, 246, 0.2)",
-              }}
-            >
-              PartsLocator
-            </h1>
-          </motion.div>
+            Η πρώτη B2B πλατφόρμα εύρεσης ανταλλακτικών, αποκλειστικά για επαγγελματίες.
+          </motion.h1>
           <motion.p
-            className="mx-auto max-w-2xl text-lg font-medium leading-relaxed text-slate-300 sm:text-xl"
-            initial={fadeInUp.initial}
-            animate={fadeInUp.animate}
-            transition={{ ...fadeInUp.transition, delay: 0.05 }}
-          >
-            Η έξυπνη αναζήτηση ανταλλακτικών για επαγγελματίες.
-          </motion.p>
-          <motion.p
-            className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-400 sm:text-lg"
+            className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-400 sm:text-xl"
             initial={fadeInUp.initial}
             animate={fadeInUp.animate}
             transition={{ ...fadeInUp.transition, delay: 0.1 }}
@@ -96,7 +81,7 @@ export default function LandingPage() {
             Αποκτήστε πρόσβαση σε πραγματικό χρόνο στα αποθέματα των μεγαλύτερων προμηθευτών. Όλη η αγορά σε μία οθόνη.
           </motion.p>
           <motion.div
-            className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:flex-wrap"
+            className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
             initial={fadeInUp.initial}
             animate={fadeInUp.animate}
             transition={{ ...fadeInUp.transition, delay: 0.2 }}
@@ -105,19 +90,13 @@ export default function LandingPage() {
               href="/sign-up"
               className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-8 py-4 text-base font-semibold text-white shadow-[0_0_25px_rgba(99,102,241,0.4)] transition-all hover:bg-indigo-500 hover:shadow-[0_0_35px_rgba(99,102,241,0.55)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
             >
-              Get Started
+              Δωρεάν Εγγραφή
             </Link>
             <Link
-              href="/sign-up"
-              className="inline-flex items-center justify-center rounded-xl border-2 border-slate-500 bg-transparent px-8 py-4 text-base font-semibold text-slate-200 transition-colors hover:border-slate-400 hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-950"
-            >
-              Get Started
-            </Link>
-            <Link
-              href="/sign-in"
+              href="/dashboard/help"
               className="inline-flex items-center justify-center rounded-xl border-2 border-slate-600 bg-transparent px-8 py-4 text-base font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-950"
             >
-              Είσοδος
+              Επικοινωνία με τις πωλήσεις
             </Link>
           </motion.div>
         </section>
