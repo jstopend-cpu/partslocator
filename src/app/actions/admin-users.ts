@@ -36,6 +36,23 @@ export function isOwnerEmail(email: string): boolean {
   return email?.trim().toLowerCase() === OWNER_EMAIL.toLowerCase();
 }
 
+export type AuditLogRow = { id: string; action: string; performedBy: string; targetUser: string; details: string; createdAt: Date };
+
+/** Create an audit log entry. performedBy is set from current user (name or email). */
+async function createAuditLog(action: string, targetUser: string, details: string): Promise<void> {
+  try {
+    const user = await currentUser();
+    const name = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
+    const email = user?.primaryEmailAddress?.emailAddress ?? "";
+    const performedBy = name || email || "—";
+    await prisma.auditLog.create({
+      data: { action, performedBy, targetUser, details },
+    });
+  } catch (e) {
+    console.error("createAuditLog:", e);
+  }
+}
+
 /** Log a dashboard search for the current user (for admin stats and activity log). */
 export async function logSearch(query: string): Promise<void> {
   const { userId } = await auth();
@@ -62,6 +79,7 @@ export type AdminUserRow = {
   role: string;
   allowedBrands: string[];
   isOwner: boolean;
+  suspended: boolean;
 };
 
 export type GetAdminUsersResult =
@@ -82,9 +100,10 @@ export async function getAdminUsersList(): Promise<GetAdminUsersResult> {
     });
 
     const rows: AdminUserRow[] = users.map((u) => {
-      const metadata = (u.publicMetadata as { allowedBrands?: string[]; role?: string } | undefined) ?? {};
+      const metadata = (u.publicMetadata as { allowedBrands?: string[]; role?: string; suspended?: boolean } | undefined) ?? {};
       const allowedBrands = Array.isArray(metadata.allowedBrands) ? metadata.allowedBrands : [];
       const role = typeof metadata.role === "string" ? metadata.role : "";
+      const suspended = metadata.suspended === true;
       const firstName = u.firstName ?? "";
       const lastName = u.lastName ?? "";
       const name = [firstName, lastName].filter(Boolean).join(" ") || "—";
@@ -98,6 +117,7 @@ export async function getAdminUsersList(): Promise<GetAdminUsersResult> {
         role: displayRole,
         allowedBrands,
         isOwner,
+        suspended,
       };
     });
 
@@ -138,7 +158,9 @@ export async function updateUserMetadata(
     const user = await client.users.getUser(userId);
     const existing = (user.publicMetadata as Record<string, unknown>) ?? {};
     const currentRole = (existing.role as string) || "";
+    const currentBrands = Array.isArray(existing.allowedBrands) ? (existing.allowedBrands as string[]) : [];
     const email = user.primaryEmailAddress?.emailAddress ?? "";
+    const targetName = [user.firstName, user.lastName].filter(Boolean).join(" ") || email || "—";
 
     if (data.role !== undefined) {
       if (isOwnerEmail(email)) return { ok: false, error: "Δεν μπορείτε να αλλάξετε το ρόλο του Owner." };
@@ -147,11 +169,24 @@ export async function updateUserMetadata(
 
     const nextMetadata: Record<string, unknown> = {
       ...existing,
-      allowedBrands: data.allowedBrands !== undefined ? data.allowedBrands : (Array.isArray(existing.allowedBrands) ? existing.allowedBrands : []),
+      allowedBrands: data.allowedBrands !== undefined ? data.allowedBrands : currentBrands,
     };
     if (data.role !== undefined && !isOwnerEmail(email)) nextMetadata.role = data.role;
 
     await client.users.updateUserMetadata(userId, { publicMetadata: nextMetadata });
+
+    const performer = await currentUser();
+    const performerName = [performer?.firstName, performer?.lastName].filter(Boolean).join(" ").trim() || performer?.primaryEmailAddress?.emailAddress ?? "—";
+    if (data.role !== undefined && !isOwnerEmail(email)) {
+      const details = `Ο ${performerName} άλλαξε το ρόλο του χρήστη ${targetName} από [${currentRole || "customer"}] σε [${data.role}].`;
+      await createAuditLog("UPDATE_ROLE", email, details);
+    }
+    if (data.allowedBrands !== undefined) {
+      const oldStr = currentBrands.length ? currentBrands.join(", ") : "—";
+      const newStr = data.allowedBrands.length ? data.allowedBrands.join(", ") : "—";
+      const details = `Ο ${performerName} άλλαξε τις μάρκες του χρήστη ${targetName} από [${oldStr}] σε [${newStr}].`;
+      await createAuditLog("UPDATE_BRANDS", email, details);
+    }
     return { ok: true };
   } catch (e) {
     console.error("updateUserMetadata:", e);
@@ -165,6 +200,77 @@ export async function updateUserAllowedBrands(
   allowedBrands: string[]
 ): Promise<UpdateUserBrandsResult> {
   return updateUserMetadata(userId, { allowedBrands });
+}
+
+export type SetUserSuspendedResult =
+  | { ok: true }
+  | { ok: false; forbidden: true }
+  | { ok: false; error: string };
+
+/** Suspend or activate a user (sets publicMetadata.suspended). Only owner can suspend an Admin. */
+export async function setUserSuspended(userId: string, suspended: boolean): Promise<SetUserSuspendedResult> {
+  const currentRole = await getCurrentAdminRole();
+  if (!currentRole || currentRole === "support") return { ok: false, forbidden: true };
+
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    const existing = (user.publicMetadata as Record<string, unknown>) ?? {};
+    const targetRole = (existing.role as string) || "";
+    const email = user.primaryEmailAddress?.emailAddress ?? "";
+    const targetName = [user.firstName, user.lastName].filter(Boolean).join(" ") || email || "—";
+
+    if (targetRole === "admin" && currentRole !== "owner") return { ok: false, forbidden: true };
+    if (isOwnerEmail(email)) return { ok: false, error: "Δεν μπορείτε να αναστείλετε τον Owner." };
+
+    await client.users.updateUserMetadata(userId, {
+      publicMetadata: { ...existing, suspended },
+    });
+
+    const action = suspended ? "SUSPEND" : "ACTIVATE";
+    const performer = await currentUser();
+    const performerName = [performer?.firstName, performer?.lastName].filter(Boolean).join(" ").trim() || performer?.primaryEmailAddress?.emailAddress ?? "—";
+    const details = suspended
+      ? `Ο ${performerName} απέκλεισε την πρόσβαση του χρήστη ${targetName}.`
+      : `Ο ${performerName} ενεργοποίησε ξανά τον χρήστη ${targetName}.`;
+    await createAuditLog(action, email, details);
+    return { ok: true };
+  } catch (e) {
+    console.error("setUserSuspended:", e);
+    return { ok: false, error: "Σφάλμα ενημέρωσης χρήστη." };
+  }
+}
+
+export type GetAuditLogsResult =
+  | { ok: true; data: AuditLogRow[] }
+  | { ok: false; forbidden: true }
+  | { ok: false; error: string };
+
+/** Fetch audit log. Only Owner can view the full audit log. */
+export async function getAuditLogs(): Promise<GetAuditLogsResult> {
+  const role = await getCurrentAdminRole();
+  if (role !== "owner") return { ok: false, forbidden: true };
+
+  try {
+    const logs = await prisma.auditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 500,
+    });
+    return {
+      ok: true,
+      data: logs.map((l) => ({
+        id: l.id,
+        action: l.action,
+        performedBy: l.performedBy,
+        targetUser: l.targetUser,
+        details: l.details,
+        createdAt: l.createdAt,
+      })),
+    };
+  } catch (e) {
+    console.error("getAuditLogs:", e);
+    return { ok: false, error: "Σφάλμα φόρτωσης ιστορικού." };
+  }
 }
 
 export type PendingInvitationRow = { id: string; email: string; role: string; createdAt: Date };
@@ -210,6 +316,10 @@ export async function createInvitation(email: string, role: string): Promise<Cre
       create: { email: trimmed, role: roleNorm },
       update: { role: roleNorm },
     });
+    const performer = await currentUser();
+    const performerName = [performer?.firstName, performer?.lastName].filter(Boolean).join(" ").trim() || performer?.primaryEmailAddress?.emailAddress ?? "—";
+    const details = `Πρόσκληση για ${trimmed} με ρόλο ${roleNorm} από ${performerName}.`;
+    await createAuditLog("INVITE", trimmed, details);
     return { ok: true };
   } catch (e) {
     console.error("createInvitation:", e);

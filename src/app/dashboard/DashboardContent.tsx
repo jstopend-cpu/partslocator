@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { logSearch } from "@/app/actions/admin-users";
@@ -14,6 +14,8 @@ const PAGE_SIZE = 10;
 export default function DashboardContent() {
   const router = useRouter();
   const { isLoaded, userId } = useAuth();
+  const { user } = useUser();
+  const suspended = (user?.publicMetadata as { suspended?: boolean } | undefined)?.suspended === true;
   const searchParams = useSearchParams();
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const search = searchParams.get("q") ?? searchParams.get("search") ?? "";
@@ -126,6 +128,15 @@ export default function DashboardContent() {
         >
           Log in
         </Link>
+      </div>
+    );
+  }
+
+  if (isLoaded && userId && suspended) {
+    router.replace("/account-suspended");
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-500" aria-hidden />
       </div>
     );
   }

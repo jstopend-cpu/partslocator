@@ -36,9 +36,15 @@ export default function AdminLayout({
       router.replace("/");
       return;
     }
-    const role = (user?.publicMetadata as { role?: string } | undefined)?.role;
+    const metadata = user?.publicMetadata as { role?: string; suspended?: boolean } | undefined;
+    const role = metadata?.role;
     if (role === "SUPPLIER") {
       router.replace("/supplier/dashboard");
+      return;
+    }
+    if (metadata?.suspended === true) {
+      setAdminAllowed(false);
+      router.replace("/account-suspended");
       return;
     }
     canAccessAdmin().then((allowed) => {
@@ -68,31 +74,33 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans">
-      {/* Desktop sidebar */}
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-slate-800 bg-slate-900/95 lg:flex">
-        <div className="border-b border-slate-800 p-4">
-          <Link
-            href="/"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Πίσω
-          </Link>
+      {/* Desktop sidebar - same structure as dashboard for seamless feel */}
+      <aside className="fixed left-0 top-0 z-30 hidden h-screen w-56 flex-col border-r border-slate-800 bg-slate-950 lg:flex">
+        <div className="border-b border-slate-800 px-4 py-4">
+          <p className="text-sm font-bold text-white">Parts Marketplace</p>
+          <p className="text-xs text-slate-500">Master Catalog &amp; Suppliers</p>
         </div>
-        <nav className="flex-1 space-y-1 p-4">
+        <nav className="flex-1 space-y-0.5 p-3">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 rounded-lg bg-blue-600/20 px-3 py-2 text-sm font-medium text-blue-300 ring-1 ring-blue-500/30"
+          >
+            <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+            Dashboard
+          </Link>
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? "border border-blue-500/30 bg-blue-500/15 text-blue-400"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                    ? "border border-orange-500/30 bg-orange-500/15 text-orange-400"
+                    : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
                 }`}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className="h-4 w-4 shrink-0" aria-hidden />
                 <span>{item.label}</span>
               </Link>
             );
@@ -109,11 +117,11 @@ export default function AdminLayout({
             onClick={() => setMobileMenuOpen(false)}
           />
           <aside
-            className="fixed left-0 top-0 z-50 flex h-full w-72 max-w-[85vw] flex-col border-r border-slate-800 bg-slate-900 shadow-xl lg:hidden"
+            className="fixed left-0 top-0 z-50 flex h-full w-72 max-w-[85vw] flex-col border-r border-slate-800 bg-slate-950 shadow-xl lg:hidden"
             aria-label="Admin μενού"
           >
-            <div className="flex items-center justify-between border-b border-slate-800 p-4">
-              <span className="text-sm font-semibold text-slate-300">Admin</span>
+            <div className="flex items-center justify-between border-b border-slate-800 px-4 py-4">
+              <p className="text-sm font-bold text-white">Parts Marketplace</p>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
@@ -123,17 +131,17 @@ export default function AdminLayout({
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="border-b border-slate-800 p-4">
+            <div className="border-b border-slate-800 p-3">
               <Link
-                href="/"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+                href="/dashboard"
+                className="flex items-center gap-2 rounded-lg bg-blue-600/20 px-3 py-2 text-sm font-medium text-blue-300"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <ArrowLeft className="h-4 w-4" />
-                Πίσω
+                Dashboard
               </Link>
             </div>
-            <nav className="flex-1 space-y-1 p-4">
+            <nav className="flex-1 space-y-0.5 p-3">
               {NAV_ITEMS.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -141,13 +149,13 @@ export default function AdminLayout({
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                       isActive
-                        ? "border border-blue-500/30 bg-blue-500/15 text-blue-400"
-                        : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                        ? "border border-orange-500/30 bg-orange-500/15 text-orange-400"
+                        : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
                     }`}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className="h-4 w-4" />
                     <span>{item.label}</span>
                   </Link>
                 );
@@ -157,13 +165,13 @@ export default function AdminLayout({
         </>
       )}
 
-      {/* Main: fixed top bar on mobile + content */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* Main: fixed top bar on mobile + content (pl-56 for fixed sidebar) */}
+      <div className="flex min-w-0 flex-1 flex-col pl-0 lg:pl-56">
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-800 bg-slate-950/98 px-4 py-3 lg:hidden">
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:border-blue-500 hover:text-blue-300"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 transition-colors hover:border-orange-500 hover:text-orange-300"
             aria-label="Άνοιγμα μενού"
           >
             <Menu className="h-5 w-5" />

@@ -210,6 +210,19 @@ model PendingInvitation {
   @@index([email])
 }
 
+// Admin audit log: who did what to whom (only Owner can view full log)
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String   // e.g. INVITE, UPDATE_ROLE, UPDATE_BRANDS, SUSPEND, ACTIVATE
+  performedBy String   // admin name or email
+  targetUser  String   // target user email
+  details     String   // human-readable description or JSON
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+}
+
 // Universal Importer: saved field mappings + options for reuse
 model ImportProfile {
   id          String   @id @default(cuid())

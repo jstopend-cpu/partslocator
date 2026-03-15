@@ -10,9 +10,12 @@ import {
   createInvitation,
   syncPendingInvitations,
   updateUserMetadata,
+  setUserSuspended,
+  getAuditLogs,
   type AdminUserRow,
   type AdminStats,
   type AdminRole,
+  type AuditLogRow,
 } from "@/app/actions/admin-users";
 import {
   BarChart,
@@ -23,7 +26,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { Loader2, ArrowLeft, Pencil, X, Check, Users, Search, TrendingUp, UserPlus } from "lucide-react";
+import { Loader2, ArrowLeft, Pencil, X, Check, Users, Search, TrendingUp, UserPlus, ClipboardList, UserX, UserCheck } from "lucide-react";
 
 const CHART_COLOR = "#3b82f6";
 
@@ -75,9 +78,15 @@ export default function AdminPageClient({ currentRole }: Props) {
   const [inviteSending, setInviteSending] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [roleUpdatingId, setRoleUpdatingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"main" | "audit">("main");
+  const [auditLogsResult, setAuditLogsResult] = useState<Awaited<ReturnType<typeof getAuditLogs>> | null>(null);
+  const [suspendLoadingId, setSuspendLoadingId] = useState<string | null>(null);
 
   const canEditRoles = currentRole === "owner" || currentRole === "admin";
   const canAddMember = currentRole === "owner" || currentRole === "admin";
+  const isOwner = currentRole === "owner";
+  const canSuspendUser = (user: AdminUserRow) =>
+    !user.isOwner && (isOwner || user.role !== "admin");
 
   const load = useCallback(() => {
     syncPendingInvitations().then(() => {
@@ -87,6 +96,14 @@ export default function AdminPageClient({ currentRole }: Props) {
     getAdminBrandsList().then(setBrands);
     getAdminStats().then(setStatsResult);
   }, []);
+
+  const loadAudit = useCallback(() => {
+    if (isOwner) getAuditLogs().then(setAuditLogsResult);
+  }, [isOwner]);
+
+  useEffect(() => {
+    if (activeTab === "audit" && isOwner) loadAudit();
+  }, [activeTab, isOwner, loadAudit]);
 
   useEffect(() => {
     load();
@@ -163,6 +180,16 @@ export default function AdminPageClient({ currentRole }: Props) {
     }
   };
 
+  const handleSuspendToggle = async (user: AdminUserRow) => {
+    if (!canSuspendUser(user)) return;
+    setSuspendLoadingId(user.id);
+    const res = await setUserSuspended(user.id, !user.suspended);
+    setSuspendLoadingId(null);
+    if (res.ok) {
+      load();
+    }
+  };
+
   if (usersResult === null || statsResult === null) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
@@ -229,6 +256,105 @@ export default function AdminPageClient({ currentRole }: Props) {
         </div>
       </header>
 
+      {/* Tabs: Main (stats + users) and Audit Log (owner only) */}
+      <div className="border-b border-slate-800">
+        <nav className="flex gap-1" aria-label="Admin tabs">
+          <button
+            type="button"
+            onClick={() => setActiveTab("main")}
+            className={`rounded-t-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
+              activeTab === "main"
+                ? "border-slate-700 border-b-transparent bg-slate-900/95 text-white"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Διαχείριση χρηστών
+          </button>
+          {isOwner && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("audit")}
+              className={`flex items-center gap-2 rounded-t-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
+                activeTab === "audit"
+                  ? "border-orange-500/40 border-b-transparent bg-orange-500/10 text-orange-400"
+                  : "border-transparent text-slate-400 hover:text-orange-300/80"
+              }`}
+            >
+              <ClipboardList className="h-4 w-4" />
+              Δραστηριότητα Ομάδας
+            </button>
+          )}
+        </nav>
+      </div>
+
+      {activeTab === "audit" && isOwner && (
+        <section className="rounded-xl border border-orange-500/30 bg-slate-900/80 p-4">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-orange-400">
+            <ClipboardList className="h-5 w-5" />
+            Δραστηριότητα Ομάδας
+          </h2>
+          {auditLogsResult === null ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-orange-500/70" />
+            </div>
+          ) : !auditLogsResult.ok ? (
+            <p className="py-4 text-slate-400">
+              {"forbidden" in auditLogsResult ? "Δεν έχετε πρόσβαση." : (auditLogsResult as { error?: string }).error}
+            </p>
+          ) : auditLogsResult.data.length === 0 ? (
+            <p className="py-8 text-center text-slate-500">Δεν υπάρχουν καταγραφές.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-700 text-xs font-medium uppercase tracking-wider text-slate-400">
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Ημερομηνία</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Διαχειριστής</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Ενέργεια</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Περιγραφή</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {auditLogsResult.data.map((row: AuditLogRow) => {
+                    const isNew = row.action === "INVITE" || row.action === "ACTIVATE";
+                    const isDeletion = row.action === "SUSPEND";
+                    const rowBg = isDeletion
+                      ? "bg-red-950/20"
+                      : isNew
+                        ? "bg-emerald-950/20"
+                        : "bg-slate-900/30";
+                    const actionColor = isDeletion
+                      ? "text-red-400"
+                      : isNew
+                        ? "text-emerald-400"
+                        : "text-orange-400";
+                    return (
+                      <tr key={row.id} className={`${rowBg} hover:opacity-90`}>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-400 sm:px-6 sm:py-4">
+                          {new Date(row.createdAt).toLocaleString("el-GR", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })}
+                        </td>
+                        <td className="px-4 py-3 text-slate-200 sm:px-6 sm:py-4">{row.performedBy}</td>
+                        <td className={`px-4 py-3 font-medium sm:px-6 sm:py-4 ${actionColor}`}>
+                          {row.action}
+                        </td>
+                        <td className="px-4 py-3 text-slate-300 sm:px-6 sm:py-4">{row.details}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab !== "main" && <div className="h-0 overflow-hidden" aria-hidden />}
+
+      {activeTab === "main" && (
+        <>
       {/* Statistics cards */}
       {stats && (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -348,8 +474,9 @@ export default function AdminPageClient({ currentRole }: Props) {
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Email</th>
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Role</th>
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Allowed Brands</th>
-                    {canEditRoles && (
-                      <th className="px-4 py-3 sm:px-6 sm:py-4 w-24 text-right">Ενέργεια</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Κατάσταση</th>
+                    {(canEditRoles || isOwner) && (
+                      <th className="px-4 py-3 sm:px-6 sm:py-4 text-right">Ενέργεια</th>
                     )}
                   </tr>
                 </thead>
@@ -384,17 +511,53 @@ export default function AdminPageClient({ currentRole }: Props) {
                         <td className="px-4 py-3 text-slate-400 sm:px-6 sm:py-4">
                           {user.allowedBrands.length === 0 ? "—" : user.allowedBrands.join(", ")}
                         </td>
-                        {canEditRoles && (
+                        <td className="px-4 py-3 sm:px-6 sm:py-4">
+                          {user.suspended ? (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-red-500/40 bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-300">
+                              Ανενεργός
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/20 px-2 py-0.5 text-xs font-medium text-emerald-300">
+                              Ενεργός
+                            </span>
+                          )}
+                        </td>
+                        {(canEditRoles || isOwner) && (
                           <td className="px-4 py-3 text-right sm:px-6 sm:py-4">
-                            <button
-                              type="button"
-                              onClick={() => openEdit(user)}
-                              disabled={user.isOwner}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800/80 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-300 disabled:opacity-50 disabled:pointer-events-none"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                              Edit
-                            </button>
+                            <div className="flex flex-wrap items-center justify-end gap-1.5">
+                              {canEditRoles && (
+                                <button
+                                  type="button"
+                                  onClick={() => openEdit(user)}
+                                  disabled={user.isOwner}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800/80 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-300 disabled:opacity-50 disabled:pointer-events-none"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                  Edit
+                                </button>
+                              )}
+                              {canSuspendUser(user) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSuspendToggle(user)}
+                                  disabled={suspendLoadingId === user.id}
+                                  title={user.suspended ? "Ενεργοποίηση" : "Απόκλεισμα πρόσβασης"}
+                                  className={
+                                    user.suspended
+                                      ? "inline-flex items-center gap-1 rounded-lg border border-emerald-600/50 bg-emerald-600/20 px-2.5 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-600/30 disabled:opacity-50"
+                                      : "inline-flex items-center gap-1 rounded-lg border border-red-600/50 bg-red-600/20 px-2.5 py-1.5 text-xs font-medium text-red-300 hover:bg-red-600/30 disabled:opacity-50"
+                                  }
+                                >
+                                  {suspendLoadingId === user.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : user.suspended ? (
+                                    <><UserCheck className="h-3.5 w-3.5" /> Ενεργοποίηση</>
+                                  ) : (
+                                    <><UserX className="h-3.5 w-3.5" /> Απόκλεισμα</>
+                                  )}
+                                </button>
+                              )}
+                            </div>
                           </td>
                         )}
                       </tr>
@@ -445,6 +608,9 @@ export default function AdminPageClient({ currentRole }: Props) {
             )}
           </div>
         </section>
+      )}
+
+        </>
       )}
 
       {/* Add member modal */}
