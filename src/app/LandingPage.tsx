@@ -68,7 +68,7 @@ export default function LandingPage() {
             Η πρώτη B2B πλατφόρμα εύρεσης ανταλλακτικών, αποκλειστικά για επαγγελματίες.
           </motion.h1>
           <motion.p
-            className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white sm:text-xl"
+            className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-400 sm:text-xl"
             style={{ lineHeight: 1.6 }}
             initial={fadeInUp.initial}
             animate={fadeInUp.animate}
