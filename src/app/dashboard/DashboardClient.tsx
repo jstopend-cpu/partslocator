@@ -173,7 +173,8 @@ export default function DashboardClient({
               side: "left",
               align: "end",
             },
-        },
+          },
+        ],
       });
       driverObj.drive();
     }, 500);
