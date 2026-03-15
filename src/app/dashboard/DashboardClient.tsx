@@ -86,7 +86,9 @@ export default function DashboardClient({
   const router = useRouter();
   const { signOut } = useClerk();
   const { user } = useUser();
-  const isAdmin = (user?.publicMetadata?.role as string) === "admin";
+  const isAdmin =
+    user?.publicMetadata?.role === "admin" ||
+    user?.primaryEmailAddress?.emailAddress === "jstopend@gmail.com";
   const [customer, setCustomer] = useState<CustomerSession | null>(null);
   const [products, setProducts] = useState<DashboardProduct[]>(
     Array.isArray(initialProducts) ? initialProducts : []
@@ -389,7 +391,7 @@ export default function DashboardClient({
           <button
             type="button"
             onClick={handleLogout}
-            className="flex h-9 items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-red-500/40 hover:bg-red-950/30 hover:text-red-300"
+            className="ml-1 flex h-9 items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-red-500/40 hover:bg-red-950/30 hover:text-red-300 sm:ml-2"
           >
             <LogOut className="h-4 w-4 shrink-0" aria-hidden />
             Αποσύνδεση
