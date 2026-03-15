@@ -74,6 +74,8 @@ type Props = {
   suppliers: string[];
   searchTerm?: string;
   isLoading?: boolean;
+  isFreeUser?: boolean;
+  searchCredits?: number;
   onSearchChange?: (q: string) => void;
   onPageChange?: (newPage: number) => void;
 };
@@ -86,6 +88,8 @@ export default function DashboardClient({
   suppliers,
   searchTerm: searchTermProp = "",
   isLoading = false,
+  isFreeUser = false,
+  searchCredits = 0,
   onSearchChange,
   onPageChange,
 }: Props) {
@@ -555,12 +559,26 @@ export default function DashboardClient({
             </div>
           ) : (
           <div className="relative mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8 lg:flex-row">
+            {isFreeUser && hasSearched && searchCredits <= 0 && (
+              <div className="absolute left-0 right-0 top-0 z-20 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 shadow-lg">
+                <p className="font-medium">Έχετε εξαντλήσει τις δωρεάν αναζητήσεις.</p>
+                <p className="mt-1 text-amber-200/90">
+                  <Link
+                    href="/dashboard/help"
+                    className="underline hover:text-amber-100"
+                  >
+                    Αναβαθμίστε σε Pro
+                  </Link>{" "}
+                  για πρόσβαση σε προμηθευτές και προσθήκη στο καλάθι.
+                </p>
+              </div>
+            )}
             {isLoading && (
               <div className="absolute left-0 right-0 top-0 z-10 h-0.5 overflow-hidden rounded-full bg-slate-800">
                 <div className="loading-bar h-full min-w-[30%] rounded-full bg-emerald-500" />
               </div>
             )}
-            <div className="flex-1 transition-opacity duration-300 ease-out">
+            <div className={`flex-1 transition-opacity duration-300 ease-out ${isFreeUser && hasSearched && searchCredits <= 0 ? "pt-24" : ""}`}>
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 shadow-xl backdrop-blur">
             <div className="space-y-6 p-6 md:p-8">
             <section className="space-y-4">
@@ -716,10 +734,10 @@ export default function DashboardClient({
                 <thead>
                   <tr className="border-b border-slate-800 bg-slate-800/60 text-xs font-medium uppercase tracking-wider text-slate-400">
                     <th className="px-4 py-3">{"Προϊόν / EAN"}</th>
-                    <th className="px-4 py-3">Προμηθευτής</th>
+                    {!isFreeUser && <th className="px-4 py-3">Προμηθευτής</th>}
                     <th className="px-4 py-3 text-right">Τιμή B2B</th>
                     <th className="px-4 py-3 text-center">Απόθεμα</th>
-                    <th className="px-4 py-3 w-32 text-right">Ενέργεια</th>
+                    {!isFreeUser && <th className="px-4 py-3 w-32 text-right">Ενέργεια</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
@@ -739,9 +757,11 @@ export default function DashboardClient({
                               <p className="font-mono text-[11px] text-slate-500">EAN: {product.ean}</p>
                             </div>
                           </td>
-                          <td className="px-4 py-3">
-                            <BrandBadge brand={product.supplier} />
-                          </td>
+                          {!isFreeUser && (
+                            <td className="px-4 py-3">
+                              <BrandBadge brand={product.supplier} />
+                            </td>
+                          )}
                           <td className="px-4 py-3 text-right font-medium text-emerald-300">
                             {formatPrice(product.price)}
                           </td>
@@ -755,19 +775,21 @@ export default function DashboardClient({
                               <span className="text-xs">{stockStyles.label}</span>
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              type="button"
-                              className="rounded-lg border border-emerald-500/60 bg-emerald-600/10 px-3 py-1.5 text-xs font-medium text-emerald-200 transition-colors hover:bg-emerald-600/25 disabled:cursor-not-allowed disabled:opacity-60"
-                              onClick={() => {
-                                if (!inStockBool) return;
-                                handleAddToCart(product);
-                              }}
-                              disabled={!inStockBool}
-                            >
-                              Προσθήκη
-                            </button>
-                          </td>
+                          {!isFreeUser && (
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                className="rounded-lg border border-emerald-500/60 bg-emerald-600/10 px-3 py-1.5 text-xs font-medium text-emerald-200 transition-colors hover:bg-emerald-600/25 disabled:cursor-not-allowed disabled:opacity-60"
+                                onClick={() => {
+                                  if (!inStockBool) return;
+                                  handleAddToCart(product);
+                                }}
+                                disabled={!inStockBool}
+                              >
+                                Προσθήκη
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -796,7 +818,7 @@ export default function DashboardClient({
                             <span className="font-mono text-[11px] text-blue-400">
                               EAN: {product.ean}
                             </span>
-                            <BrandBadge brand={product.supplier} />
+                            {!isFreeUser && <BrandBadge brand={product.supplier} />}
                           </div>
                         </div>
                         <div className="text-right">
@@ -816,18 +838,20 @@ export default function DashboardClient({
                           )}
                           <span>{stockStyles.label}</span>
                         </div>
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/60 bg-emerald-600/10 px-3 py-1.5 text-xs font-medium text-emerald-200 transition-colors hover:bg-emerald-600/25 disabled:cursor-not-allowed disabled:opacity-60"
-                          onClick={() => {
-                            if (!inStockBool) return;
-                            handleAddToCart(product);
-                          }}
-                          disabled={!inStockBool}
-                        >
-                          <ShoppingCart className="h-3.5 w-3.5" aria-hidden />
-                          <span>Προσθήκη σε αίτημα</span>
-                        </button>
+                        {!isFreeUser && (
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/60 bg-emerald-600/10 px-3 py-1.5 text-xs font-medium text-emerald-200 transition-colors hover:bg-emerald-600/25 disabled:cursor-not-allowed disabled:opacity-60"
+                            onClick={() => {
+                              if (!inStockBool) return;
+                              handleAddToCart(product);
+                            }}
+                            disabled={!inStockBool}
+                          >
+                            <ShoppingCart className="h-3.5 w-3.5" aria-hidden />
+                            <span>Προσθήκη σε αίτημα</span>
+                          </button>
+                        )}
                       </div>
                     </article>
                   );

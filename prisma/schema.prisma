@@ -166,10 +166,21 @@ model UpdateLog {
 }
 
 // Subscription tier per user (Clerk userId). Source of truth for FREE | BASIC | PRO.
+// App user record (Clerk userId). B2B fields + search credits.
+model User {
+  id           String   @id @default(cuid())
+  userId       String   @unique // Clerk user id
+  taxId        String?  // ΑΦΜ / VAT
+  companyName  String?
+  searchCredits Int     @default(3)
+  updatedAt    DateTime @updatedAt
+}
+
 model Profile {
   id               String   @id @default(cuid())
   userId           String   @unique // Clerk user id
-  subscriptionTier String   @default("FREE") // FREE | BASIC | PRO
+  subscriptionTier String   @default("FREE") // FREE | BASIC | PRO (FREE = FREE_USER)
+  searchCredits    Int      @default(3) // for FREE users; decremented on search
   updatedAt        DateTime @updatedAt
 }
 

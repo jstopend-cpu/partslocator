@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { logSearch } from "@/app/actions/admin-users";
+import { getProfile, decrementSearchCredits } from "@/app/actions/subscription";
+import type { ProfileInfo } from "@/app/actions/subscription";
 import DashboardClient from "./DashboardClient";
 import type { DashboardProduct } from "./DashboardClient";
 
@@ -21,6 +23,9 @@ export default function DashboardContent() {
   const search = searchParams.get("q") ?? searchParams.get("search") ?? "";
 
   const [isMounted, setIsMounted] = useState(false);
+  const [profile, setProfile] = useState<ProfileInfo>(null);
+  const profileRef = useRef<ProfileInfo>(null);
+  profileRef.current = profile;
   const [dashboardData, setDashboardData] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -30,6 +35,11 @@ export default function DashboardContent() {
     setIsMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!userId || !isLoaded) return;
+    getProfile().then(setProfile);
+  }, [userId, isLoaded]);
+
   const FETCH_TIMEOUT_MS = 12000;
 
   const loadProducts = useCallback((_pageNum: number, _searchTerm: string) => {
@@ -38,8 +48,25 @@ export default function DashboardContent() {
     const controller = new AbortController();
     const { signal } = controller;
     const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    const url = `/api/products?page=${_pageNum}&search=${encodeURIComponent(_searchTerm)}`;
-    fetch(url, { signal })
+
+    const runFetch = () => {
+      const url = `/api/products?page=${_pageNum}&search=${encodeURIComponent(_searchTerm)}`;
+      return fetch(url, { signal });
+    };
+
+    const maybeDecrementAndFetch = async () => {
+      const prof = profileRef.current;
+      if (prof?.subscriptionTier === "FREE" && _pageNum === 1 && _searchTerm.trim()) {
+        const res = await decrementSearchCredits();
+        if (res.ok) {
+          const nextProfile = await getProfile();
+          setProfile(nextProfile);
+        }
+      }
+      return runFetch();
+    };
+
+    maybeDecrementAndFetch()
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json().then((body: unknown) => ({
@@ -164,6 +191,9 @@ export default function DashboardContent() {
     );
   }
 
+  const isFreeUser = profile?.subscriptionTier === "FREE";
+  const searchCredits = profile?.searchCredits ?? 0;
+
   return (
     <DashboardClient
       initialProducts={safeProductsList}
@@ -173,6 +203,8 @@ export default function DashboardContent() {
       suppliers={Array.isArray(suppliers) ? suppliers : []}
       searchTerm={search}
       isLoading={loading}
+      isFreeUser={isFreeUser}
+      searchCredits={searchCredits}
       onSearchChange={(q) => {
         const query = q.trim() ? `?page=1&q=${encodeURIComponent(q.trim())}` : "";
         router.replace(`/dashboard${query}`);
