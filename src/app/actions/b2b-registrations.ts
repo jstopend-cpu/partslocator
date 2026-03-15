@@ -5,12 +5,17 @@ import prisma from "@/database/client";
 
 const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
 
-/** Allow access if user email is ADMIN_EMAIL or userId is ADMIN_USER_ID. (Basic security; later use Roles.) */
+const OWNER_EMAIL = "jstopend@gmail.com";
+
+/** Allow access if user has role 'admin', email is owner or ADMIN_EMAIL, or userId is ADMIN_USER_ID. */
 export async function canAccessAdmin(): Promise<boolean> {
   const { userId } = await auth();
   const user = await currentUser();
-  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const role = (user?.publicMetadata as { role?: string } | undefined)?.role;
   const userEmail = user?.primaryEmailAddress?.emailAddress?.trim().toLowerCase();
+  if (role === "admin") return true;
+  if (userEmail === OWNER_EMAIL.toLowerCase()) return true;
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   if (adminEmail && userEmail === adminEmail) return true;
   if (userId === ADMIN_USER_ID) return true;
   return false;

@@ -4,11 +4,12 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
-import { ArrowLeft, BarChart3, Package, Loader2, Warehouse, Menu, X, FileInput, Truck, UserPlus } from "lucide-react";
+import { ArrowLeft, BarChart3, Package, Loader2, Warehouse, Menu, X, FileInput, Truck, UserPlus, Users } from "lucide-react";
 import { canAccessAdmin } from "@/app/actions/b2b-registrations";
 
 const NAV_ITEMS = [
-  { href: "/admin", label: "B2B Εγγραφές", icon: UserPlus },
+  { href: "/admin", label: "Διαχείριση χρηστών", icon: Users },
+  { href: "/admin/b2b", label: "B2B Εγγραφές", icon: UserPlus },
   { href: "/admin/dashboard", label: "Analytics Dashboard", icon: BarChart3 },
   { href: "/admin/orders", label: "Διαχείριση παραγγελιών", icon: Package },
   { href: "/admin/inventory", label: "Απόθεμα", icon: Warehouse },
