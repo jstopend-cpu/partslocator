@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useClerk, useUser, UserButton } from "@clerk/nextjs";
+import { driver } from "driver.js";
+import "driver.js/dist/driver.css";
 import { getDashboardBrands } from "@/app/actions/categories";
 import {
   Search,
@@ -16,6 +18,8 @@ import {
   Shield,
   Loader2,
 } from "lucide-react";
+
+const ONBOARDING_STORAGE_KEY = "onboarding_complete";
 
 type CustomerSession = {
   name: string;
@@ -112,6 +116,70 @@ export default function DashboardClient({
   useEffect(() => {
     setSearchInput(searchTermProp);
   }, [searchTermProp]);
+
+  // Onboarding tour for new users (driver.js)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === "true") return;
+
+    const timer = setTimeout(() => {
+      const driverObj = driver({
+        showProgress: true,
+        popoverClass: "onboarding-popover-dark",
+        nextBtnText: "Επόμενο",
+        prevBtnText: "Πίσω",
+        doneBtnText: "Τέλος",
+        progressText: "{{current}} από {{total}}",
+        onDestroyed: () => {
+          window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
+        },
+        steps: [
+          {
+            element: "[data-onboarding=\"sidebar-brands\"]",
+            popover: {
+              title: "Μάρκες",
+              description:
+                "Εδώ μπορείτε να επιλέξετε τη μάρκα του αυτοκινήτου που σας ενδιαφέρει.",
+              side: "right",
+              align: "start",
+            },
+          },
+          {
+            element: "[data-onboarding=\"search-bar\"]",
+            popover: {
+              title: "Αναζήτηση",
+              description:
+                "Αναζητήστε κωδικούς ανταλλακτικών ή περιγραφή εδώ.",
+              side: "bottom",
+              align: "center",
+            },
+          },
+          {
+            element: "[data-onboarding=\"header-actions\"]",
+            popover: {
+              title: "Παραγγελίες & Καλάθι",
+              description:
+                "Δείτε τις παραγγελίες σας και το καλάθι σας γρήγορα.",
+              side: "bottom",
+              align: "end",
+            },
+          },
+          {
+            element: "[data-onboarding=\"user-profile\"]",
+            popover: {
+              title: "Προφίλ",
+              description:
+                "Από εδώ μπορείτε να διαχειριστείτε το προφίλ σας ή να αποσυνδεθείτε.",
+              side: "left",
+              align: "end",
+            },
+        },
+      });
+      driverObj.drive();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleSearchChange = (value: string) => {
@@ -357,7 +425,7 @@ export default function DashboardClient({
             <Package className="h-4 w-4 shrink-0" aria-hidden />
             Οι Παραγγελίες μου
           </Link>
-          <div className="space-y-2 pt-2">
+          <div className="space-y-2 pt-2" data-onboarding="sidebar-brands">
             <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               SHOP BY BRAND
             </p>
@@ -391,7 +459,7 @@ export default function DashboardClient({
 
       {/* Main: header + content */}
       <div className="flex flex-1 flex-col min-h-screen pl-56">
-        <header className="flex flex-wrap items-center justify-end gap-2 border-b border-slate-800 bg-transparent px-4 py-3 sm:gap-3">
+        <header className="flex flex-wrap items-center justify-end gap-2 border-b border-slate-800 bg-transparent px-4 py-3 sm:gap-3" data-onboarding="header-actions">
           <Link
             href="/dashboard"
             className="relative flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 px-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800"
@@ -420,7 +488,7 @@ export default function DashboardClient({
               Διαχείριση
             </Link>
           )}
-          <span className="flex h-9 items-center">
+          <span className="flex h-9 items-center" data-onboarding="user-profile">
             <UserButton appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
           </span>
           <button
@@ -440,7 +508,7 @@ export default function DashboardClient({
                 <h1 className="text-center text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
                   PARTSLOCATOR
                 </h1>
-                <div className="flex gap-3">
+                <div className="flex gap-3" data-onboarding="search-bar">
                   <div className="relative flex-1">
                     <Search
                       className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"

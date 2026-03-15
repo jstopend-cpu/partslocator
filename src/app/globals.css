@@ -7,3 +7,56 @@
 .loading-bar {
   animation: loading-bar 1.2s ease-in-out infinite;
 }
+
+/* Driver.js onboarding tour – dark theme (slate-950) */
+.onboarding-popover-dark.driver-popover {
+  background-color: #020617;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+.onboarding-popover-dark .driver-popover-title {
+  color: #f8fafc;
+  font-weight: 600;
+}
+.onboarding-popover-dark .driver-popover-description {
+  color: #94a3b8;
+}
+.onboarding-popover-dark .driver-popover-close-btn {
+  color: #94a3b8;
+  background: transparent;
+}
+.onboarding-popover-dark .driver-popover-close-btn:hover {
+  color: #f8fafc;
+  background: #334155;
+}
+.onboarding-popover-dark .driver-popover-footer {
+  border-top: 1px solid #334155;
+}
+.onboarding-popover-dark .driver-popover-prev-btn {
+  background: #334155;
+  color: #e2e8f0;
+  border: none;
+  border-radius: 8px;
+}
+.onboarding-popover-dark .driver-popover-prev-btn:hover {
+  background: #475569;
+}
+.onboarding-popover-dark .driver-popover-next-btn {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+}
+.onboarding-popover-dark .driver-popover-next-btn:hover {
+  background: #3b82f6;
+}
+.onboarding-popover-dark .driver-popover-progress-text {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+.driver-overlay {
+  background: #000;
+  opacity: 0.7;
+}
