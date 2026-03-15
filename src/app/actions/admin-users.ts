@@ -32,7 +32,7 @@ export async function getCurrentAdminRole(): Promise<AdminRole> {
   return null;
 }
 
-export function isOwnerEmail(email: string): boolean {
+export async function isOwnerEmail(email: string): Promise<boolean> {
   return email?.trim().toLowerCase() === OWNER_EMAIL.toLowerCase();
 }
 
@@ -108,7 +108,7 @@ export async function getAdminUsersList(): Promise<GetAdminUsersResult> {
       const lastName = u.lastName ?? "";
       const name = [firstName, lastName].filter(Boolean).join(" ") || "—";
       const email = u.primaryEmailAddress?.emailAddress ?? (u as { emailAddresses?: { emailAddress?: string }[] }).emailAddresses?.[0]?.emailAddress ?? "—";
-      const isOwner = isOwnerEmail(email);
+      const isOwner = await isOwnerEmail(email);
       const displayRole = isOwner ? "owner" : (role || "customer");
       return {
         id: u.id,
@@ -163,7 +163,7 @@ export async function updateUserMetadata(
     const targetName = [user.firstName, user.lastName].filter(Boolean).join(" ") || email || "—";
 
     if (data.role !== undefined) {
-      if (isOwnerEmail(email)) return { ok: false, error: "Δεν μπορείτε να αλλάξετε το ρόλο του Owner." };
+      if (await isOwnerEmail(email)) return { ok: false, error: "Δεν μπορείτε να αλλάξετε το ρόλο του Owner." };
       if (currentRole === "admin" && role !== "owner") return { ok: false, forbidden: true };
     }
 
@@ -171,13 +171,13 @@ export async function updateUserMetadata(
       ...existing,
       allowedBrands: data.allowedBrands !== undefined ? data.allowedBrands : currentBrands,
     };
-    if (data.role !== undefined && !isOwnerEmail(email)) nextMetadata.role = data.role;
+    if (data.role !== undefined && !(await isOwnerEmail(email))) nextMetadata.role = data.role;
 
     await client.users.updateUserMetadata(userId, { publicMetadata: nextMetadata });
 
     const performer = await currentUser();
     const performerName = ([performer?.firstName, performer?.lastName].filter(Boolean).join(" ").trim() || performer?.primaryEmailAddress?.emailAddress) ?? "—";
-    if (data.role !== undefined && !isOwnerEmail(email)) {
+    if (data.role !== undefined && !(await isOwnerEmail(email))) {
       const details = `Ο ${performerName} άλλαξε το ρόλο του χρήστη ${targetName} από [${currentRole || "customer"}] σε [${data.role}].`;
       await createAuditLog("UPDATE_ROLE", email, details);
     }
@@ -221,7 +221,7 @@ export async function setUserSuspended(userId: string, suspended: boolean): Prom
     const targetName = [user.firstName, user.lastName].filter(Boolean).join(" ") || email || "—";
 
     if (targetRole === "admin" && currentRole !== "owner") return { ok: false, forbidden: true };
-    if (isOwnerEmail(email)) return { ok: false, error: "Δεν μπορείτε να αναστείλετε τον Owner." };
+    if (await isOwnerEmail(email)) return { ok: false, error: "Δεν μπορείτε να αναστείλετε τον Owner." };
 
     await client.users.updateUserMetadata(userId, {
       publicMetadata: { ...existing, suspended },
