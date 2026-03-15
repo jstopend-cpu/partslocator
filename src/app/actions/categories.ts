@@ -1,9 +1,25 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import prisma from "@/database/client";
 
 const ADMIN_USER_ID = "user_3AuVyZoT8xur0En8TTwTVr1cCY2";
+const OWNER_EMAIL = "jstopend@gmail.com";
+
+/** Returns all brand names for dashboard sidebar. Only returns data if user is admin (role or owner email). */
+export async function getDashboardBrands(): Promise<string[]> {
+  const user = await currentUser();
+  if (!user) return [];
+  const role = user.publicMetadata?.role as string | undefined;
+  const email = user.primaryEmailAddress?.emailAddress ?? "";
+  const isAdmin = role === "admin" || email === OWNER_EMAIL;
+  if (!isAdmin) return [];
+  const list = await prisma.brand.findMany({
+    orderBy: { name: "asc" },
+    select: { name: true },
+  });
+  return list.map((b) => b.name).filter(Boolean);
+}
 
 export type CategoryRow = { id: string; name: string };
 

@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useClerk, useUser, UserButton } from "@clerk/nextjs";
+import { getDashboardBrands } from "@/app/actions/categories";
 import {
   Search,
   LogOut,
@@ -89,6 +90,8 @@ export default function DashboardClient({
   const isAdmin =
     user?.publicMetadata?.role === "admin" ||
     user?.primaryEmailAddress?.emailAddress === "jstopend@gmail.com";
+  const allowedBrands = (user?.publicMetadata?.allowedBrands as string[] | undefined) ?? [];
+  const [allBrandsFromDb, setAllBrandsFromDb] = useState<string[]>([]);
   const [customer, setCustomer] = useState<CustomerSession | null>(null);
   const [products, setProducts] = useState<DashboardProduct[]>(
     Array.isArray(initialProducts) ? initialProducts : []
@@ -96,6 +99,11 @@ export default function DashboardClient({
   const [searchInput, setSearchInput] = useState(searchTermProp);
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
   const hasSearched = Boolean(searchTermProp?.trim());
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    getDashboardBrands().then(setAllBrandsFromDb);
+  }, [isAdmin]);
 
   useEffect(() => {
     setProducts(Array.isArray(initialProducts) ? initialProducts : []);
@@ -181,15 +189,28 @@ export default function DashboardClient({
     await signOut({ redirectUrl: "/login" });
   };
 
-  const filteredProducts = useMemo(() => {
+  const productsForDisplay = useMemo(() => {
     const list = Array.isArray(products) ? products : [];
+    if (isAdmin) return list;
+    return list.filter((p) => allowedBrands.includes(p.supplier));
+  }, [products, isAdmin, allowedBrands]);
+
+  const filteredProducts = useMemo(() => {
+    const list = productsForDisplay;
     const supplierValue = supplierFilter === "all" ? null : supplierFilter;
     if (!supplierValue) return list;
     return list.filter((product) => product.supplier === supplierValue);
-  }, [products, supplierFilter]);
+  }, [productsForDisplay, supplierFilter]);
 
-  const totalProducts = totalCount;
-  const productsList = Array.isArray(products) ? products : [];
+  const dropdownBrands = isAdmin ? allBrandsFromDb : allowedBrands;
+  const resultSuppliers = useMemo(
+    () =>
+      [...new Set(productsForDisplay.map((p) => p.supplier))].filter(Boolean).sort(),
+    [productsForDisplay]
+  );
+
+  const totalProducts = isAdmin ? totalCount : productsForDisplay.length;
+  const productsList = productsForDisplay;
   const totalOnPage = productsList.length;
   const startItem = totalOnPage === 0 ? 0 : (page - 1) * pageSize + 1;
   const endItem = totalOnPage === 0 ? 0 : (page - 1) * pageSize + totalOnPage;
@@ -197,6 +218,12 @@ export default function DashboardClient({
   const hasNext = endItem < totalProducts;
   const inStock = productsList.filter((p) => p.stock > 0).length;
   const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+
+  const showAccessDenied =
+    !isAdmin &&
+    hasSearched &&
+    (Array.isArray(products) ? products : []).length > 0 &&
+    productsForDisplay.length === 0;
 
   const getStockBadgeStyles = (stock: number) => {
     if (stock > 5) {
@@ -335,7 +362,11 @@ export default function DashboardClient({
               SHOP BY BRAND
             </p>
             <select
-              value={supplierFilter}
+              value={
+                supplierFilter === "all" || dropdownBrands.includes(supplierFilter)
+                  ? supplierFilter
+                  : "all"
+              }
               onChange={(e) => {
                 setSupplierFilter(e.target.value);
                 if (page !== 1) router.push("/dashboard?page=1");
@@ -343,8 +374,12 @@ export default function DashboardClient({
               className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               aria-label="Επίλεξε brand"
             >
-              <option value="all">Επίλεξε brand...</option>
-              {(suppliers || []).map((s) => (
+              <option value="all">
+                {!isAdmin && dropdownBrands.length === 0
+                  ? "Δεν βρέθηκαν συνδρομές"
+                  : "Επίλεξε brand..."}
+              </option>
+              {dropdownBrands.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
@@ -494,7 +529,7 @@ export default function DashboardClient({
                   className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                 >
                   <option value="all">Όλες οι μάρκες</option>
-                  {(suppliers || []).map((s) => (
+                  {resultSuppliers.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
@@ -549,7 +584,13 @@ export default function DashboardClient({
               </div>
             )}
 
-            {!error && filteredProducts.length === 0 && (
+            {showAccessDenied && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-6 text-sm text-amber-200">
+                Δεν έχετε πρόσβαση σε αυτή την αναζήτηση. Τα αποτελέσματα περιλαμβάνουν μάρκες που δεν ανήκουν στη συνδρομή σας.
+              </div>
+            )}
+
+            {!error && !showAccessDenied && filteredProducts.length === 0 && (
               <div className="rounded-xl border border-slate-800 bg-slate-900/80 px-4 py-6 text-sm text-slate-400">
                 Δεν βρέθηκαν προϊόντα για την αναζήτηση{" "}
                 <span className="font-medium text-slate-200">&quot;{searchTermProp || searchInput}&quot;</span>. Δοκίμαστε άλλη ονομασία ή EAN.
