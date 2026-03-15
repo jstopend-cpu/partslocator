@@ -12,7 +12,7 @@ import {
   PackageSearch,
   CheckCircle2,
   AlertTriangle,
-  Settings,
+  Shield,
   Loader2,
 } from "lucide-react";
 
@@ -307,12 +307,16 @@ export default function DashboardClient({
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-100">
-      {/* Left sidebar: slate-950 */}
-      <aside className="flex w-56 flex-col border-r border-slate-800 bg-slate-950">
+      {/* Left sidebar - fixed */}
+      <aside className="fixed left-0 top-0 z-30 flex h-screen w-56 flex-col border-r border-slate-800 bg-slate-950">
+        <div className="border-b border-slate-800 px-4 py-4">
+          <p className="text-sm font-bold text-white">Parts Marketplace</p>
+          <p className="text-xs text-slate-500">Master Catalog &amp; Suppliers</p>
+        </div>
         <nav className="flex-1 space-y-0.5 p-3">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 rounded-lg bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200"
+            className="flex items-center gap-2 rounded-lg bg-blue-600/20 px-3 py-2 text-sm font-medium text-blue-300 ring-1 ring-blue-500/30"
           >
             <PackageSearch className="h-4 w-4 shrink-0" aria-hidden />
             Dashboard
@@ -321,7 +325,7 @@ export default function DashboardClient({
             href="/dashboard/orders"
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
           >
-            <ShoppingCart className="h-4 w-4 shrink-0" aria-hidden />
+            <Package className="h-4 w-4 shrink-0" aria-hidden />
             Οι Παραγγελίες μου
           </Link>
         </nav>
@@ -336,9 +340,9 @@ export default function DashboardClient({
               if (page !== 1) router.push("/dashboard?page=1");
             }}
             className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-            aria-label="Επίλεξε Brand"
+            aria-label="Επίλεξε brand"
           >
-            <option value="all">Επίλεξε Brand</option>
+            <option value="all">Επίλεξε brand...</option>
             {(suppliers || []).map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -357,23 +361,23 @@ export default function DashboardClient({
       </aside>
 
       {/* Main: header + content */}
-      <div className="flex flex-1 flex-col min-h-screen">
+      <div className="flex flex-1 flex-col min-h-screen pl-56">
         <header className="flex items-center justify-end gap-3 border-b border-slate-800 bg-transparent px-4 py-3">
           <Link
             href="/dashboard"
-            className="relative inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900 p-2 text-slate-200 hover:bg-slate-800"
+            className="relative inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 p-2 text-slate-200 hover:bg-slate-800"
             aria-label="Καλάθι"
           >
             <ShoppingCart className="h-5 w-5 shrink-0" aria-hidden />
             {cartItemCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-600 px-1 text-xs font-medium text-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-blue-600 px-1 text-xs font-medium text-white">
                 {cartItemCount}
               </span>
             )}
           </Link>
           <Link
             href="/dashboard/orders"
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
           >
             <Package className="h-4 w-4 shrink-0" aria-hidden />
             Οι Παραγγελίες μου
@@ -381,9 +385,9 @@ export default function DashboardClient({
           {isAdmin && (
             <Link
               href="/admin"
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-700"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
             >
-              <Settings className="h-4 w-4 shrink-0" aria-hidden />
+              <Shield className="h-4 w-4 shrink-0" aria-hidden />
               Διαχείριση
             </Link>
           )}
@@ -394,7 +398,7 @@ export default function DashboardClient({
           {!hasSearched ? (
             <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center px-4 py-12">
               <div className="w-full max-w-2xl space-y-8">
-                <h1 className="text-center text-2xl font-bold tracking-tight text-white">
+                <h1 className="text-center text-3xl font-bold tracking-tight text-white md:text-4xl">
                   PARTSLOCATOR
                 </h1>
                 <div className="flex gap-2">
@@ -405,8 +409,8 @@ export default function DashboardClient({
                     />
                     <input
                       type="search"
-                      placeholder="Αναζήτηση με κωδικό, περιγραφή ή brand (min 3 χαρακτήρες)..."
-                      className="w-full rounded-xl border border-slate-700 bg-slate-900/90 py-3.5 pl-12 pr-4 text-base text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                      placeholder="Αναζήτηση με κωδικο, περιγραφή ή brand (min 3 χαρακτήρες)..."
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900/90 py-3.5 pl-12 pr-4 text-base text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
                       onKeyDown={(e) => {
@@ -418,10 +422,18 @@ export default function DashboardClient({
                   <button
                     type="button"
                     onClick={() => onSearchChange?.(searchInput)}
-                    className="rounded-xl bg-indigo-600 px-5 py-3.5 text-sm font-medium text-white hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+                    className="rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-medium text-white hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-950"
                   >
                     Αναζήτηση
                   </button>
+                </div>
+                <div className="flex flex-col items-center justify-center gap-2 text-center">
+                  <p className="text-base font-medium text-slate-300">
+                    Πραγματοποιήστε μια αναζήτηση για να δείτε αποτελέσματα
+                  </p>
+                  <p className="max-w-sm text-sm text-slate-500">
+                    Αναζητήστε με κωδικό, περιγραφή ή επιλέξτε μάρκα από τη sidebar.
+                  </p>
                 </div>
               </div>
             </div>
