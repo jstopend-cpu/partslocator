@@ -72,7 +72,7 @@ export function ShopByBrandSidebar() {
         aria-expanded={open}
         aria-haspopup="listbox"
       >
-        <span className="min-w-0 flex-1 truncate text-slate-300">Επίλεξε brand...</span>
+        <span className="min-w-0 flex-1 truncate text-slate-300">Επίλεξε Brand</span>
         <ChevronDown
           className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${open ? "rotate-180" : ""}`}
         />

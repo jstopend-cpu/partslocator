@@ -63,12 +63,9 @@ const NAV_ITEMS = [
 ];
 
 const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("el-GR", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+  new Intl.NumberFormat("el-GR", { style: "currency", currency: "EUR" }).format(
+    Number(value)
+  );
 
 const MIN_SEARCH_LENGTH = 3;
 const SEARCH_LIMIT = 100;
@@ -411,11 +408,7 @@ export default function MarketplaceDashboardContent() {
               </Link>
             )}
             <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "h-9 w-9",
-                },
-              }}
+              appearance={{ elements: { avatarBox: "h-9 w-9" } }}
             />
           </div>
         </header>
@@ -471,17 +464,6 @@ export default function MarketplaceDashboardContent() {
                     </h1>
                     <div className="w-full max-w-2xl">
                       {searchForm("max-w-2xl")}
-                    </div>
-                    <div className="mt-12 flex w-full max-w-2xl flex-col items-center justify-center gap-3 text-center">
-                      <Search className="h-12 w-12 shrink-0 text-slate-400 opacity-40" aria-hidden />
-                      <p className="text-base font-medium text-slate-500">
-                        {hasSearched && products.length === 0
-                          ? "Δεν βρέθηκαν ανταλλακτικά. Δοκιμάστε άλλον όρο ή μάρκα."
-                          : "Πραγματοποιήστε μια αναζήτηση για να δείτε αποτελέσματα"}
-                      </p>
-                      <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">
-                        Αναζητήστε με κωδικό, περιγραφή ή επιλέξτε μάρκα από τη sidebar.
-                      </p>
                     </div>
                   </div>
                 </div>
