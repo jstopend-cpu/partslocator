@@ -354,13 +354,13 @@ export default function DashboardClient({
 
       {/* Main: header + content */}
       <div className="flex flex-1 flex-col min-h-screen pl-56">
-        <header className="flex items-center justify-end gap-3 border-b border-slate-800 bg-transparent px-4 py-3">
+        <header className="flex flex-wrap items-center justify-end gap-2 border-b border-slate-800 bg-transparent px-4 py-3 sm:gap-3">
           <Link
             href="/dashboard"
-            className="relative flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 px-2 text-slate-200 hover:bg-slate-800"
+            className="relative flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 px-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800"
             aria-label="Καλάθι"
           >
-            <ShoppingCart className="h-5 w-5 shrink-0" aria-hidden />
+            <ShoppingCart className="h-4 w-4 shrink-0" aria-hidden />
             {cartItemCount > 0 && (
               <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-blue-600 px-1 text-xs font-medium text-white">
                 {cartItemCount}
@@ -369,7 +369,7 @@ export default function DashboardClient({
           </Link>
           <Link
             href="/dashboard/orders"
-            className="flex h-9 items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800"
+            className="flex h-9 items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800"
           >
             <Package className="h-4 w-4 shrink-0" aria-hidden />
             Οι Παραγγελίες μου
@@ -377,17 +377,19 @@ export default function DashboardClient({
           {isAdmin && (
             <Link
               href="/admin"
-              className="flex h-9 items-center gap-2 rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800"
+              className="flex h-9 items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800"
             >
               <Shield className="h-4 w-4 shrink-0" aria-hidden />
               Διαχείριση
             </Link>
           )}
-          <UserButton appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
+          <span className="flex h-9 items-center">
+            <UserButton appearance={{ elements: { avatarBox: "h-9 w-9" } }} />
+          </span>
           <button
             type="button"
             onClick={handleLogout}
-            className="ml-1 flex h-9 items-center gap-2 rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-300 hover:border-red-500/40 hover:bg-red-950/30 hover:text-red-300"
+            className="flex h-9 items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-red-500/40 hover:bg-red-950/30 hover:text-red-300"
           >
             <LogOut className="h-4 w-4 shrink-0" aria-hidden />
             Αποσύνδεση
