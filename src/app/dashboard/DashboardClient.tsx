@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Shield,
   Loader2,
+  HelpCircle,
 } from "lucide-react";
 
 const ONBOARDING_STORAGE_KEY = "onboarding_complete";
@@ -425,6 +426,13 @@ export default function DashboardClient({
           >
             <Package className="h-4 w-4 shrink-0" aria-hidden />
             Οι Παραγγελίες μου
+          </Link>
+          <Link
+            href="/dashboard/help"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+          >
+            <HelpCircle className="h-4 w-4 shrink-0" aria-hidden />
+            Βοήθεια
           </Link>
           <div className="space-y-2 pt-2" data-onboarding="sidebar-brands">
             <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
