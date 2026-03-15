@@ -1,12 +1,13 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Public routes: landing, auth, help (for "Επικοινωνία με τις πωλήσεις" from landing)
+// Public routes: landing, auth (sign-in, sign-up, register), help
 const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in',
   '/sign-in(.*)',
   '/sign-up',
   '/sign-up(.*)',
+  '/register',
   '/dashboard/help',
   '/api/webhooks/clerk(.*)',
 ]);
