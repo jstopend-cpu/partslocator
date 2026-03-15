@@ -5,22 +5,38 @@ import Link from "next/link";
 import {
   getAdminUsersList,
   getAdminBrandsList,
-  updateUserAllowedBrands,
+  getAdminStats,
+  updateUserMetadata,
   type AdminUserRow,
+  type AdminStats,
 } from "@/app/actions/admin-users";
-import { Loader2, ArrowLeft, Pencil, X, Check } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
+import { Loader2, ArrowLeft, Pencil, X, Check, Users, Search, TrendingUp } from "lucide-react";
+
+const CHART_COLOR = "#3b82f6";
 
 export default function AdminPageClient() {
-  const [result, setResult] = useState<Awaited<ReturnType<typeof getAdminUsersList>> | null>(null);
+  const [usersResult, setUsersResult] = useState<Awaited<ReturnType<typeof getAdminUsersList>> | null>(null);
+  const [statsResult, setStatsResult] = useState<Awaited<ReturnType<typeof getAdminStats>> | null>(null);
   const [brands, setBrands] = useState<string[]>([]);
   const [editingUser, setEditingUser] = useState<AdminUserRow | null>(null);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [isAdminRole, setIsAdminRole] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    getAdminUsersList().then(setResult);
+    getAdminUsersList().then(setUsersResult);
     getAdminBrandsList().then(setBrands);
+    getAdminStats().then(setStatsResult);
   }, []);
 
   useEffect(() => {
@@ -30,12 +46,14 @@ export default function AdminPageClient() {
   const openEdit = (user: AdminUserRow) => {
     setEditingUser(user);
     setSelectedBrands([...user.allowedBrands]);
+    setIsAdminRole(user.role === "admin");
     setSaveError(null);
   };
 
   const closeEdit = () => {
     setEditingUser(null);
     setSelectedBrands([]);
+    setIsAdminRole(false);
     setSaveError(null);
   };
 
@@ -49,7 +67,10 @@ export default function AdminPageClient() {
     if (!editingUser) return;
     setSaving(true);
     setSaveError(null);
-    const updateResult = await updateUserAllowedBrands(editingUser.id, selectedBrands);
+    const updateResult = await updateUserMetadata(editingUser.id, {
+      role: isAdminRole ? "admin" : "customer",
+      allowedBrands: selectedBrands,
+    });
     setSaving(false);
     if (updateResult.ok) {
       closeEdit();
@@ -61,7 +82,7 @@ export default function AdminPageClient() {
     }
   };
 
-  if (result === null) {
+  if (usersResult === null || statsResult === null) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
@@ -69,7 +90,7 @@ export default function AdminPageClient() {
     );
   }
 
-  if (!result.ok && "forbidden" in result && result.forbidden) {
+  if (!usersResult.ok && "forbidden" in usersResult && usersResult.forbidden) {
     return (
       <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-8 text-center">
         <p className="text-slate-300">Δεν έχετε πρόσβαση σε αυτή τη σελίδα.</p>
@@ -84,8 +105,8 @@ export default function AdminPageClient() {
     );
   }
 
-  if (!result.ok) {
-    const message = "error" in result ? result.error : "Σφάλμα φόρτωσης.";
+  if (!usersResult.ok) {
+    const message = "error" in usersResult ? usersResult.error : "Σφάλμα φόρτωσης.";
     return (
       <div className="rounded-xl border border-red-900/50 bg-red-950/20 p-4 text-red-300">
         {message}
@@ -93,17 +114,18 @@ export default function AdminPageClient() {
     );
   }
 
-  const users = result.data;
+  const users = usersResult.data;
+  const stats = statsResult.ok ? statsResult.data : null;
 
   return (
-    <>
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-white sm:text-2xl">
-            Διαχείριση χρηστών
+            Admin Panel
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Όλοι οι εγγεγραμμένοι χρήστες · Επεξεργασία Allowed Brands ανά χρήστη
+            Στατιστικά, διαχείριση χρηστών και ιστορικό αναζητήσεων
           </p>
         </div>
         <Link
@@ -115,56 +137,191 @@ export default function AdminPageClient() {
         </Link>
       </header>
 
-      <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50">
-        {users.length === 0 ? (
-          <div className="py-12 text-center text-slate-500">
-            Δεν υπάρχουν εγγεγραμμένοι χρήστες.
+      {/* Statistics cards */}
+      {stats && (
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
+            <div className="flex items-center gap-2 text-slate-400">
+              <Users className="h-5 w-5" />
+              <span className="text-xs font-medium uppercase tracking-wider">Σύνολο χρηστών</span>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-white">{stats.totalUsers}</p>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-800 bg-slate-800/60 text-xs font-medium uppercase tracking-wider text-slate-400">
-                  <th className="px-4 py-3 sm:px-6 sm:py-4">Όνομα</th>
-                  <th className="px-4 py-3 sm:px-6 sm:py-4">Email</th>
-                  <th className="px-4 py-3 sm:px-6 sm:py-4">Allowed Brands</th>
-                  <th className="px-4 py-3 sm:px-6 sm:py-4 w-24 text-right">Ενέργεια</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="bg-slate-900/30 transition-colors hover:bg-slate-800/40"
-                  >
-                    <td className="px-4 py-3 text-slate-200 sm:px-6 sm:py-4">
-                      {user.name}
-                    </td>
-                    <td className="px-4 py-3 text-slate-300 sm:px-6 sm:py-4">
-                      {user.email}
-                    </td>
-                    <td className="px-4 py-3 text-slate-400 sm:px-6 sm:py-4">
-                      {user.allowedBrands.length === 0
-                        ? "—"
-                        : user.allowedBrands.join(", ")}
-                    </td>
-                    <td className="px-4 py-3 text-right sm:px-6 sm:py-4">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(user)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800/80 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-300"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Edit
-                      </button>
-                    </td>
+          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
+            <div className="flex items-center gap-2 text-slate-400">
+              <Search className="h-5 w-5" />
+              <span className="text-xs font-medium uppercase tracking-wider">Αναζητήσεις σήμερα</span>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-white">{stats.searchesToday}</p>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
+            <div className="flex items-center gap-2 text-slate-400">
+              <Search className="h-5 w-5" />
+              <span className="text-xs font-medium uppercase tracking-wider">Αναζητήσεις (μήνας)</span>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-white">{stats.searchesMonth}</p>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
+            <div className="flex items-center gap-2 text-slate-400">
+              <TrendingUp className="h-5 w-5" />
+              <span className="text-xs font-medium uppercase tracking-wider">Δημοφιλέστερη μάρκα</span>
+            </div>
+            <p className="mt-2 text-lg font-bold text-white truncate" title={stats.mostPopularBrand}>
+              {stats.mostPopularBrand}
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* Bar chart: searches per day */}
+      {stats && stats.searchesByDay.length > 0 && (
+        <section className="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
+            Αναζητήσεις ανά ημέρα (τελευταίες 14)
+          </h2>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.searchesByDay} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "#94a3b8", fontSize: 10 }}
+                  tickFormatter={(v) => v.slice(5)}
+                />
+                <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#0f172a",
+                    border: "1px solid #334155",
+                    borderRadius: "8px",
+                    color: "#e2e8f0",
+                  }}
+                  labelFormatter={(v) => v}
+                />
+                <Bar dataKey="count" name="Αναζητήσεις" radius={[4, 4, 0, 0]}>
+                  {stats.searchesByDay.map((_, i) => (
+                    <Cell key={i} fill={CHART_COLOR} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      )}
+
+      {/* User management */}
+      <section>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
+          Διαχείριση χρηστών & συνδρομές
+        </h2>
+        <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50">
+          {users.length === 0 ? (
+            <div className="py-12 text-center text-slate-500">
+              Δεν υπάρχουν εγγεγραμμένοι χρήστες.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-800/60 text-xs font-medium uppercase tracking-wider text-slate-400">
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Όνομα</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Email</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Role</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Allowed Brands</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4 w-24 text-right">Ενέργεια</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {users.map((user) => (
+                    <tr
+                      key={user.id}
+                      className="bg-slate-900/30 transition-colors hover:bg-slate-800/40"
+                    >
+                      <td className="px-4 py-3 text-slate-200 sm:px-6 sm:py-4">
+                        {user.name}
+                      </td>
+                      <td className="px-4 py-3 text-slate-300 sm:px-6 sm:py-4">
+                        {user.email}
+                      </td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                            user.role === "admin"
+                              ? "bg-blue-500/20 text-blue-300"
+                              : "bg-slate-700/50 text-slate-400"
+                          }`}
+                        >
+                          {user.role || "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-400 sm:px-6 sm:py-4">
+                        {user.allowedBrands.length === 0
+                          ? "—"
+                          : user.allowedBrands.join(", ")}
+                      </td>
+                      <td className="px-4 py-3 text-right sm:px-6 sm:py-4">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(user)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800/80 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-300"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Activity log: last 10 searches */}
+      {stats && (
+        <section>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
+            Ιστορικό αναζητήσεων (τελευταίες 10)
+          </h2>
+          <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50">
+            {stats.recentSearches.length === 0 ? (
+              <div className="py-8 text-center text-slate-500">
+                Δεν υπάρχουν καταγεγραμμένες αναζητήσεις.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-800 bg-slate-800/60 text-xs font-medium uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-3 sm:px-6 sm:py-4">Χρήστης (email)</th>
+                      <th className="px-4 py-3 sm:px-6 sm:py-4">Αναζήτηση</th>
+                      <th className="px-4 py-3 sm:px-6 sm:py-4">Ημερομηνία</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {stats.recentSearches.map((row, i) => (
+                      <tr key={i} className="bg-slate-900/30 hover:bg-slate-800/40">
+                        <td className="px-4 py-3 text-slate-300 sm:px-6 sm:py-4">
+                          {row.userEmail || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-200 sm:px-6 sm:py-4">
+                          {row.query}
+                        </td>
+                        <td className="px-4 py-3 text-slate-400 sm:px-6 sm:py-4">
+                          {new Date(row.createdAt).toLocaleString("el-GR", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </section>
+      )}
 
       {/* Edit modal */}
       {editingUser && (
@@ -177,7 +334,7 @@ export default function AdminPageClient() {
           <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white">
-                Allowed Brands · {editingUser.name}
+                Επεξεργασία · {editingUser.name}
               </h2>
               <button
                 type="button"
@@ -190,26 +347,43 @@ export default function AdminPageClient() {
             </div>
             <p className="mb-4 text-sm text-slate-400">{editingUser.email}</p>
 
-            <div className="mb-4 max-h-64 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-3">
-              {brands.length === 0 ? (
-                <p className="text-sm text-slate-500">Δεν υπάρχουν μάρκες στη βάση.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {brands.map((brand) => (
-                    <li key={brand}>
-                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-700/50">
-                        <input
-                          type="checkbox"
-                          checked={selectedBrands.includes(brand)}
-                          onChange={() => toggleBrand(brand)}
-                          className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-2 focus:ring-blue-500/40"
-                        />
-                        <span className="text-sm text-slate-200">{brand}</span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              )}
+            <div className="mb-4">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={isAdminRole}
+                  onChange={(e) => setIsAdminRole(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-2 focus:ring-blue-500/40"
+                />
+                <span className="text-sm font-medium text-slate-200">Admin</span>
+              </label>
+            </div>
+
+            <div className="mb-4">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+                Allowed Brands
+              </p>
+              <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50 p-3">
+                {brands.length === 0 ? (
+                  <p className="text-sm text-slate-500">Δεν υπάρχουν μάρκες στη βάση.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {brands.map((brand) => (
+                      <li key={brand}>
+                        <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-700/50">
+                          <input
+                            type="checkbox"
+                            checked={selectedBrands.includes(brand)}
+                            onChange={() => toggleBrand(brand)}
+                            className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-2 focus:ring-blue-500/40"
+                          />
+                          <span className="text-sm text-slate-200">{brand}</span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
             {saveError && (
@@ -241,6 +415,6 @@ export default function AdminPageClient() {
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }

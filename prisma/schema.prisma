@@ -187,6 +187,18 @@ model B2BRegistration {
   @@index([companyName])
 }
 
+// Dashboard search log for admin stats and activity
+model SearchLog {
+  id        String   @id @default(cuid())
+  userId    String
+  userEmail String?  // denormalized for activity log display
+  query     String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+}
+
 // Universal Importer: saved field mappings + options for reuse
 model ImportProfile {
   id          String   @id @default(cuid())

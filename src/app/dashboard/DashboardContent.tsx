@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import { logSearch } from "@/app/actions/admin-users";
 import DashboardClient from "./DashboardClient";
 import type { DashboardProduct } from "./DashboardClient";
 
@@ -62,6 +63,7 @@ export default function DashboardContent() {
         setDashboardData(mapped);
         setTotalCount(total);
         setError(null);
+        if (_pageNum === 1 && _searchTerm.trim()) logSearch(_searchTerm.trim());
       })
       .catch(() => {
         setDashboardData([]);
