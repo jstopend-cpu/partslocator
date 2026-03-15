@@ -239,6 +239,20 @@ model Notification {
   @@index([targetUserId, type, createdAt])
 }
 
+// Support tickets from Help Center form
+model SupportTicket {
+  id        String   @id @default(cuid())
+  subject   String
+  message   String
+  priority  String   // LOW | MEDIUM | HIGH
+  userEmail String?
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([priority])
+}
+
 // Universal Importer: saved field mappings + options for reuse
 model ImportProfile {
   id          String   @id @default(cuid())
