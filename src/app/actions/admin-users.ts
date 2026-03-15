@@ -176,7 +176,7 @@ export async function updateUserMetadata(
     await client.users.updateUserMetadata(userId, { publicMetadata: nextMetadata });
 
     const performer = await currentUser();
-    const performerName = [performer?.firstName, performer?.lastName].filter(Boolean).join(" ").trim() || performer?.primaryEmailAddress?.emailAddress ?? "—";
+    const performerName = ([performer?.firstName, performer?.lastName].filter(Boolean).join(" ").trim() || performer?.primaryEmailAddress?.emailAddress) ?? "—";
     if (data.role !== undefined && !isOwnerEmail(email)) {
       const details = `Ο ${performerName} άλλαξε το ρόλο του χρήστη ${targetName} από [${currentRole || "customer"}] σε [${data.role}].`;
       await createAuditLog("UPDATE_ROLE", email, details);
@@ -229,7 +229,7 @@ export async function setUserSuspended(userId: string, suspended: boolean): Prom
 
     const action = suspended ? "SUSPEND" : "ACTIVATE";
     const performer = await currentUser();
-    const performerName = [performer?.firstName, performer?.lastName].filter(Boolean).join(" ").trim() || performer?.primaryEmailAddress?.emailAddress ?? "—";
+    const performerName = ([performer?.firstName, performer?.lastName].filter(Boolean).join(" ").trim() || performer?.primaryEmailAddress?.emailAddress) ?? "—";
     const details = suspended
       ? `Ο ${performerName} απέκλεισε την πρόσβαση του χρήστη ${targetName}.`
       : `Ο ${performerName} ενεργοποίησε ξανά τον χρήστη ${targetName}.`;
@@ -317,7 +317,7 @@ export async function createInvitation(email: string, role: string): Promise<Cre
       update: { role: roleNorm },
     });
     const performer = await currentUser();
-    const performerName = [performer?.firstName, performer?.lastName].filter(Boolean).join(" ").trim() || performer?.primaryEmailAddress?.emailAddress ?? "—";
+    const performerName = ([performer?.firstName, performer?.lastName].filter(Boolean).join(" ").trim() || performer?.primaryEmailAddress?.emailAddress) ?? "—";
     const details = `Πρόσκληση για ${trimmed} με ρόλο ${roleNorm} από ${performerName}.`;
     await createAuditLog("INVITE", trimmed, details);
     return { ok: true };

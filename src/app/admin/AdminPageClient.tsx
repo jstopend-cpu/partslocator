@@ -50,7 +50,7 @@ function RoleBadge({ role }: { role: string }) {
     support: "bg-amber-500/20 text-amber-300 border-amber-500/40",
     customer: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
   };
-  const label = ROLE_OPTIONS.find((r) => r.value === role)?.label ?? role || "—";
+  const label = ROLE_OPTIONS.find((r) => r.value === role)?.label ?? (role || "—");
   return (
     <span
       className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${styles[role] ?? "bg-slate-700/50 text-slate-400 border-slate-600/50"}`}
