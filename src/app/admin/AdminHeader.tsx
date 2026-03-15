@@ -136,7 +136,6 @@ export default function AdminHeader() {
         )}
       </div>
       <UserButton
-        afterSignOutUrl="/"
         appearance={{
           elements: { avatarBox: "h-9 w-9" },
         }}
